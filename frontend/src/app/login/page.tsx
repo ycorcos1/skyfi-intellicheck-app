@@ -26,7 +26,7 @@ function LoginForm() {
       const timer = setTimeout(() => {
         // Only redirect if we're still authenticated and not already on the target page
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/dashboard")) {
-          router.replace(redirectTo);
+      router.replace(redirectTo);
         }
       }, 100);
       return () => clearTimeout(timer);

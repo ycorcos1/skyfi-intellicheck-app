@@ -3,7 +3,7 @@
 // Actual routing is handled client-side
 export function generateStaticParams() {
   return [{ id: "placeholder" }];
-}
+        }
 
 // Server component wrapper for static export
 import React from "react";
