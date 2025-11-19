@@ -25,7 +25,7 @@ while [[ "${attempt}" -le "${MAX_RETRIES}" ]]; do
 
     version_json="$(curl -s "${API_URL}/version" || true)"
     if [[ -n "${version_json}" ]]; then
-      version="$(printf '%s' "${version_json}" | python3 - <<'PY' || echo 'unknown'
+      version="$(printf '%s' "${version_json}" | python3 - <<'PY'
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -33,7 +33,7 @@ try:
 except Exception:
     print("unknown")
 PY
-)"
+)" || echo "unknown"
       echo "ℹ️  API version: ${version}"
     else
       echo "⚠️  Version endpoint returned empty response."
