@@ -102,11 +102,15 @@ jobs:
               fi
               echo "=== Recent CloudWatch Logs ==="
               LOG_GROUP="/aws/ecs/skyfi-intellicheck-api-dev"
-              aws logs tail "$LOG_GROUP" \
-                --since 10m \
-                --format short \
+              echo "Fetching recent logs from $LOG_GROUP..."
+              START_TIME=$(($(date +%s) - 600))000
+              aws logs filter-log-events \
+                --log-group-name "$LOG_GROUP" \
+                --start-time "$START_TIME" \
                 --region "${AWS_REGION}" \
-                --max-items 50 || echo "Could not fetch logs from $LOG_GROUP"
+                --max-items 50 \
+                --query 'events[*].message' \
+                --output text 2>&1 | head -100 || echo "Could not fetch logs from $LOG_GROUP"
               exit 1
             }
 
