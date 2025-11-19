@@ -6,6 +6,7 @@ import type { CreateCompanyFormState } from "@/components/dashboard";
 import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortDirection } from "@/components/ui";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/lib/api";
 import { fetchCompanies, createCompany } from "@/lib/companies-api";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
@@ -192,7 +193,7 @@ function parseRiskInput(value: string): number | undefined {
 }
 
 export default function DashboardPage() {
-  const { getAccessToken } = useAuth();
+  const { getAccessToken, logout } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<CompanyStatus | "all">("all");
@@ -331,6 +332,13 @@ export default function DashboardPage() {
       setTotalPages(response.pages ?? 0);
     } catch (loadError) {
       console.error("Failed to load companies", loadError);
+      
+      // If we get a 401, the token is invalid - log out and let ProtectedLayout redirect
+      if (loadError instanceof ApiError && loadError.statusCode === 401) {
+        await logout();
+        return;
+      }
+      
       const message = loadError instanceof Error ? loadError.message : "Failed to load companies.";
       setError(message);
       setCompanies([]);
@@ -338,7 +346,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm, getAccessToken, riskMax, riskMin, riskRangeError, selectedStatus]);
+  }, [currentPage, debouncedSearchTerm, getAccessToken, logout, riskMax, riskMin, riskRangeError, selectedStatus]);
 
   useEffect(() => {
     void loadCompanies();
