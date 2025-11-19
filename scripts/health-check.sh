@@ -29,13 +29,13 @@ while [[ "${attempt}" -le "${MAX_RETRIES}" ]]; do
 import json, sys
 try:
     data = json.load(sys.stdin)
-    print(data.get("version", "unknown"))
+    print(data.get("api_version", data.get("version", "unknown")))
 except Exception:
     print("unknown")
 PY
 )"
       echo "ℹ️  API version: ${version}"
-    else:
+    else
       echo "⚠️  Version endpoint returned empty response."
     fi
 
