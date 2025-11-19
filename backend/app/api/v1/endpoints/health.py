@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import get_session_local
 from config import get_settings
 
 router = APIRouter()
@@ -14,17 +13,30 @@ settings = get_settings()
 
 
 @router.get("/health", tags=["health"])
-def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def health_check() -> Dict[str, Any]:
     """
     Health check endpoint that validates application and database connectivity.
     Returns a `degraded` status if the database connection fails but the API is reachable.
     Always returns 200 status code so ALB health checks pass even if DB is down.
+    
+    Note: Does not use Depends(get_db) to avoid 500 errors if database connection fails.
+    Instead, handles database connection failures gracefully.
     """
     database_status = "healthy"
 
+    # Try to get a database session manually to handle connection failures gracefully
+    # This ensures we always return 200, even if the database is unreachable
     try:
-        db.execute(text("SELECT 1"))
+        session_local = get_session_local()
+        db = session_local()
+        try:
+            db.execute(text("SELECT 1"))
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            database_status = f"unhealthy: {exc}"
+        finally:
+            db.close()
     except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Database connection/session creation failed - this is OK for health checks
         database_status = f"unhealthy: {exc}"
 
     overall_status = "healthy" if database_status == "healthy" else "degraded"

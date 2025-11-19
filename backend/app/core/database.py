@@ -62,6 +62,10 @@ def _get_session_local():
     return _SessionLocal
 
 
+# Export for health check to use directly
+get_session_local = _get_session_local
+
+
 # For backwards compatibility - these will be created on first access
 class _LazyEngine:
     """Lazy wrapper for engine that only creates it when accessed."""
