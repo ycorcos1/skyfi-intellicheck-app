@@ -1,0 +1,128 @@
+name: Lambda Worker Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - production
+    paths:
+      - 'backend/worker/**'
+      - '.github/workflows/lambda-deploy.yml'
+
+env:
+  AWS_REGION: us-east-1
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      LAMBDA_FUNCTION_NAME: skyfi-intellicheck-worker-dev
+      ENVIRONMENT: dev
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packaging dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install boto3
+
+      - name: Build Lambda deployment package
+        run: |
+          set -euo pipefail
+          chmod +x backend/worker/build_lambda.sh
+          backend/worker/build_lambda.sh
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Lambda code
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --zip-file fileb://backend/worker/lambda_deployment_package.zip \
+            --region "${AWS_REGION}"
+
+      - name: Wait for Lambda update
+        run: |
+          set -euo pipefail
+          aws lambda wait function-updated \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --region "${AWS_REGION}"
+
+      - name: Run smoke tests
+        run: |
+          set -euo pipefail
+          python backend/worker/test_deployment.py "${ENVIRONMENT}"
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    env:
+      LAMBDA_FUNCTION_NAME: skyfi-intellicheck-worker-prod
+      ENVIRONMENT: prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packaging dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install boto3
+
+      - name: Build Lambda deployment package
+        run: |
+          set -euo pipefail
+          chmod +x backend/worker/build_lambda.sh
+          backend/worker/build_lambda.sh
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Lambda code
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --zip-file fileb://backend/worker/lambda_deployment_package.zip \
+            --region "${AWS_REGION}"
+
+      - name: Wait for Lambda update
+        run: |
+          set -euo pipefail
+          aws lambda wait function-updated \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --region "${AWS_REGION}"
+
+      - name: Run smoke tests
+        run: |
+          set -euo pipefail
+          python backend/worker/test_deployment.py "${ENVIRONMENT}"
+

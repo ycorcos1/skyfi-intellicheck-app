@@ -1,0 +1,68 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ELBAdditionalPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DescribeLoadBalancerAttributes",
+        "elasticloadbalancing:DescribeTags",
+        "elasticloadbalancing:DescribeListenerAttributes"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchLogsRetention",
+      "Effect": "Allow",
+      "Action": [
+        "logs:PutRetentionPolicy",
+        "logs:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchAlarms",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ApplicationAutoScaling",
+      "Effect": "Allow",
+      "Action": [
+        "application-autoscaling:RegisterScalableTarget",
+        "application-autoscaling:DeregisterScalableTarget",
+        "application-autoscaling:DescribeScalableTargets",
+        "application-autoscaling:PutScalingPolicy",
+        "application-autoscaling:DeleteScalingPolicy",
+        "application-autoscaling:DescribeScalingPolicies",
+        "application-autoscaling:TagResource",
+        "application-autoscaling:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CognitoMFA",
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:GetUserPoolMfaConfig",
+        "cognito-idp:SetUserPoolMfaConfig"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LambdaVersions",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:ListVersionsByFunction"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+

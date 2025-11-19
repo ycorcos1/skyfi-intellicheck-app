@@ -1,0 +1,35 @@
+# Copy this file to terraform.tfvars and customize as needed
+
+aws_region          = "us-east-1"
+environment         = "dev"
+vpc_name            = "skyfi-intellicheck-vpc"
+vpc_cidr            = "10.20.0.0/16"
+availability_zones  = ["us-east-1a", "us-east-1b", "us-east-1c"]
+public_subnet_cidrs = ["10.20.0.0/24", "10.20.1.0/24", "10.20.2.0/24"]
+private_subnet_cidrs = ["10.20.10.0/24", "10.20.11.0/24", "10.20.12.0/24"]
+enable_nat_gateway  = true
+single_nat_gateway  = false  # Set to true for cost optimization (single NAT for all AZs)
+
+api_container_cpu    = 512
+api_container_memory = 1024
+api_desired_count    = 2
+api_min_count        = 2
+api_max_count        = 6
+
+enable_alb_access_logs = false
+alb_access_logs_bucket = ""
+
+# Provide ACM certificate ARN when enabling HTTPS via ALB
+certificate_arn = ""
+
+# Frontend deployment (CloudFront + S3)
+enable_custom_domain             = false
+frontend_domain_name             = "app.example.com"
+frontend_additional_domain_names = ["www.app.example.com"]
+route53_zone_id                  = "Z1234567890"
+cloudfront_price_class           = "PriceClass_100"
+frontend_default_root_object     = "index.html"
+
+# Backend API URL for CSP (defaults to ALB DNS if left empty)
+api_url = "https://api.example.com"
+
