@@ -64,6 +64,24 @@ resource "aws_iam_role_policy" "ecs_task_execution_ecr" {
   })
 }
 
+resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
+  name = "skyfi-intellicheck-secrets-policy-${var.environment}"
+  role = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = aws_secretsmanager_secret.db_credentials.arn
+      }
+    ]
+  })
+}
+
 # Task role (for application permissions)
 resource "aws_iam_role" "ecs_task" {
   name = "skyfi-intellicheck-ecs-task-role-${var.environment}"
@@ -229,7 +247,7 @@ resource "aws_ecs_service" "api" {
     rollback = true
   }
 
-  health_check_grace_period_seconds = 60
+  health_check_grace_period_seconds = 120
 
   load_balancer {
     target_group_arn = aws_lb_target_group.ecs.arn
