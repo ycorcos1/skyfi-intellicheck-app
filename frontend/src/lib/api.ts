@@ -60,11 +60,9 @@ export async function apiRequest<T>(
     });
 
     if (response.status === 401) {
-      // Force logout / redirect. Let ProtectedLayout handle redirect.
-      // Only redirect if we're not already on the login page to avoid loops
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        window.location.replace("/login");
-      }
+      // Don't do hard redirect here - let ProtectedLayout handle it
+      // Hard redirects cause page reloads and can create loops
+      // The ProtectedLayout will detect auth failure and redirect appropriately
       throw new ApiError(401, "Unauthorized");
     }
 
