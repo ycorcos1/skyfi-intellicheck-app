@@ -18,6 +18,7 @@ def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     Health check endpoint that validates application and database connectivity.
     Returns a `degraded` status if the database connection fails but the API is reachable.
+    Always returns 200 status code so ALB health checks pass even if DB is down.
     """
     database_status = "healthy"
 
@@ -28,6 +29,8 @@ def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
 
     overall_status = "healthy" if database_status == "healthy" else "degraded"
 
+    # Always return 200 - ALB health check requires 200 status
+    # The status field indicates actual health, but HTTP status is always 200
     return {
         "status": overall_status,
         "database": database_status,
