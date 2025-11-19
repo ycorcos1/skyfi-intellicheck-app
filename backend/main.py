@@ -1,30 +1,49 @@
 from __future__ import annotations
 
+import sys
 import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import api_router
-from app.api.v1.endpoints import health
-from app.core.logging import (
-    setup_structured_logging,
-    set_correlation_id,
-    get_correlation_id,
-    generate_correlation_id,
-    get_logger
-)
-from app.core.metrics import get_metrics_client
-from config import get_settings
+# Basic logging to stderr before structured logging is set up
+print("Starting SkyFi IntelliCheck API...", file=sys.stderr)
+sys.stderr.flush()
 
-settings = get_settings()
+try:
+    from app.api import api_router
+    from app.api.v1.endpoints import health
+    from app.core.logging import (
+        setup_structured_logging,
+        set_correlation_id,
+        get_correlation_id,
+        generate_correlation_id,
+        get_logger
+    )
+    from app.core.metrics import get_metrics_client
+    from config import get_settings
 
-# Set up structured logging
-setup_structured_logging(
-    service_name="api",
-    level="INFO",
-    environment=settings.environment
-)
-logger = get_logger(__name__)
+    print("Imports successful", file=sys.stderr)
+    sys.stderr.flush()
+
+    settings = get_settings()
+    print(f"Settings loaded: environment={settings.environment}", file=sys.stderr)
+    sys.stderr.flush()
+
+    # Set up structured logging
+    setup_structured_logging(
+        service_name="api",
+        level="INFO",
+        environment=settings.environment
+    )
+    logger = get_logger(__name__)
+    print("Logging configured", file=sys.stderr)
+    sys.stderr.flush()
+except Exception as e:
+    print(f"ERROR during startup: {e}", file=sys.stderr)
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    sys.stderr.flush()
+    raise
 
 app = FastAPI(
     title="SkyFi IntelliCheck API",

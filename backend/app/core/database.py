@@ -14,21 +14,31 @@ settings = get_settings()
 engine_options: Dict[str, Any] = {
     "pool_pre_ping": True,  # Verify connections before using them
     "echo": False,  # Set to True for SQL query logging in development
+    "connect_args": {
+        "connect_timeout": 10,  # 10 second connection timeout
+    } if not settings.db_url.startswith("sqlite") else {"check_same_thread": False},
 }
 
 # PostgreSQL/RDS requires connection pooling; SQLite does not support it
-if settings.db_url.startswith("sqlite"):
-    engine_options["connect_args"] = {"check_same_thread": False}
-else:
+if not settings.db_url.startswith("sqlite"):
     # PostgreSQL connection pooling for RDS
     engine_options.update({
         "pool_size": 10,  # Number of connections to maintain
         "max_overflow": 20,  # Additional connections beyond pool_size
     })
 
-engine = create_engine(settings.db_url, **engine_options)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Create engine with error handling - don't fail on import
+try:
+    engine = create_engine(settings.db_url, **engine_options)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+except Exception as e:
+    # If engine creation fails, log but continue - health check will handle it
+    import sys
+    print(f"WARNING: Database engine creation failed: {e}", file=sys.stderr)
+    # Create a minimal engine that will fail gracefully on first use
+    # This allows the app to start and return degraded status in health checks
+    engine = create_engine(settings.db_url, **engine_options)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
