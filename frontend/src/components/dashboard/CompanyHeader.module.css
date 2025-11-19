@@ -1,0 +1,207 @@
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-md);
+}
+
+.primaryContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 18rem;
+  flex: 1 1 60%;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.domain {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--color-gray-dark);
+  font-size: var(--text-lg);
+}
+
+.domainLabel {
+  text-transform: uppercase;
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  color: var(--color-gray-dark);
+}
+
+.domainValue {
+  font-weight: 600;
+  color: var(--color-black);
+}
+
+.meta {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.metaLabel {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-gray-dark);
+}
+
+.metaValue {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-black);
+  word-break: break-word;
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 16rem;
+  flex: 1 1 220px;
+}
+
+.riskBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.riskScore {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.riskLabel {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.riskLow {
+  background-color: rgba(40, 167, 69, 0.12);
+  color: var(--color-success);
+}
+
+.riskMedium {
+  background-color: rgba(255, 204, 0, 0.16);
+  color: var(--color-yellow);
+}
+
+.riskHigh {
+  background-color: rgba(220, 53, 69, 0.18);
+  color: var(--color-error);
+}
+
+.analysisStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.progressTrack {
+  position: relative;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.progressValue {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-yellow) 0%, #ffd84d 100%);
+  transition: width 0.4s ease;
+}
+
+.progressLabel {
+  font-size: var(--text-sm);
+  color: var(--color-gray-dark);
+}
+
+.analysisDetail {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-gray-dark);
+  max-width: 18rem;
+}
+
+@media (max-width: 900px) {
+  .container {
+    padding: var(--space-3);
+  }
+
+  .metrics {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .analysisStatus {
+    flex: 1;
+  }
+
+  .analysisDetail {
+    max-width: none;
+  }
+}
+
+@media (max-width: var(--breakpoint-sm)) {
+  .container {
+    flex-direction: column;
+  }
+
+  .metrics {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .riskBadge {
+    width: 100%;
+  }
+}

@@ -1,0 +1,184 @@
+.container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  table-layout: fixed;
+}
+
+.caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--text-lg);
+  padding: 1rem 1.5rem;
+}
+
+.thead {
+  background-color: var(--color-gray-light);
+}
+
+.table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-bottom: 2px solid var(--color-gray-medium);
+}
+
+.headerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.headerButton:hover .sortIcon,
+.headerButton:focus-visible .sortIcon {
+  opacity: 1;
+}
+
+.headerButton:focus-visible {
+  box-shadow: 0 2px 0 var(--color-yellow);
+}
+
+.headerLabel {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sortIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.25;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.sort-asc {
+  transform: rotate(225deg);
+  opacity: 1;
+}
+
+.sort-desc {
+  transform: rotate(45deg);
+  opacity: 1;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.row {
+  transition: background-color var(--transition-base);
+}
+
+.row:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+.row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.row:focus-within {
+  background-color: rgba(255, 204, 0, 0.16);
+}
+
+.cell {
+  padding: 1rem 1.5rem;
+  font-size: var(--text-base);
+  border-bottom: 1px solid var(--color-gray-medium);
+  color: var(--color-black);
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.table tbody tr:last-of-type .cell {
+  border-bottom: none;
+}
+
+.align-left {
+  text-align: left;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emptyCell {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--color-gray-dark);
+}
+
+.emptyMessage {
+  font-size: var(--text-base);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.paginationButton {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-gray-medium);
+  background-color: var(--color-white);
+  font-weight: 600;
+  transition: background-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.paginationButton:not(:disabled):hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+}
+
+.paginationButton:disabled {
+  color: var(--color-gray-dark);
+  border-color: rgba(0, 0, 0, 0.08);
+  cursor: not-allowed;
+}
+
+.paginationStatus {
+  font-size: var(--text-sm);
+  color: var(--color-gray-dark);
+}
+

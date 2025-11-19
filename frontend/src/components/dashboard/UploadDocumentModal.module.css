@@ -1,0 +1,162 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  z-index: 50;
+}
+
+.modal {
+  width: min(640px, 100%);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.title {
+  font-size: var(--text-xl);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-gray-dark);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dropZone {
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.dropZoneActive {
+  border-color: var(--color-yellow);
+  background-color: rgba(255, 204, 0, 0.12);
+}
+
+.dropZone label {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.dropZone button {
+  text-transform: none;
+}
+
+.dropZone input[type="file"] {
+  display: none;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--color-black);
+}
+
+.helperText {
+  font-size: var(--text-sm);
+  color: var(--color-gray-dark);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}
+
+.formError {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: rgba(220, 53, 69, 0.12);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--color-gray-medium);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.35);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.secondaryButton {
+  text-transform: none;
+}
+
+.primaryButton {
+  text-transform: none;
+}
+
+.disabledNotice {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--color-gray-dark);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .modal {
+    padding: var(--space-2);
+  }
+
+  .dropZone {
+    padding: var(--space-2);
+  }
+}
+

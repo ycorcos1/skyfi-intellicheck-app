@@ -1,0 +1,307 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  height: var(--header-height);
+  background-color: var(--color-black);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--page-margin-mobile);
+  box-shadow: var(--shadow-md);
+}
+
+.navContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brandGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: transparent;
+  color: var(--color-white);
+  transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.hamburger:hover,
+.hamburger:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.hamburgerBar {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 2px;
+  transition: transform var(--transition-base), background-color var(--transition-base);
+}
+
+.hamburgerBar::before,
+.hamburgerBar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 22px;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 2px;
+  transition: transform var(--transition-base);
+}
+
+.hamburgerBar::before {
+  transform: translateY(-6px);
+}
+
+.hamburgerBar::after {
+  transform: translateY(6px);
+}
+
+.hamburger[aria-expanded="true"] .hamburgerBar {
+  background-color: transparent;
+}
+
+.hamburger[aria-expanded="true"] .hamburgerBar::before {
+  transform: rotate(45deg);
+}
+
+.hamburger[aria-expanded="true"] .hamburgerBar::after {
+  transform: rotate(-45deg);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: var(--text-xl);
+}
+
+.brandAccent {
+  color: var(--color-yellow);
+}
+
+.primaryNav {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.navLink {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+.navLink:hover,
+.navLink:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.navLinkActive {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  transition: background-color var(--transition-base), color var(--transition-base);
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-yellow);
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  position: relative;
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: var(--radius-full);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-white);
+  font-weight: 700;
+  transition: background-color var(--transition-base);
+}
+
+.menuButton:hover,
+.menuButton:focus-visible {
+  background-color: rgba(255, 255, 255, 0.24);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background-color: var(--color-white);
+  color: var(--color-black);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuItem {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background-color: var(--color-gray-light);
+}
+
+.mobileOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1100;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mobileMenu {
+  width: min(320px, 80%);
+  height: 100%;
+  background-color: var(--color-black);
+  color: var(--color-white);
+  box-shadow: -16px 0 32px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.mobileMenuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobileMenuTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mobileCloseButton {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: none;
+  color: inherit;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xl);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobileCloseButton:hover,
+.mobileCloseButton:focus-visible {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.mobileNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobileNav a {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: inherit;
+}
+
+.mobileNav a[aria-current="page"] {
+  background-color: rgba(255, 204, 0, 0.25);
+  color: var(--color-yellow);
+}
+
+.mobileMenuFooter {
+  margin-top: auto;
+}
+
+.mobileLogout {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.mobileLogout:hover,
+.mobileLogout:focus-visible {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+@media (min-width: var(--breakpoint-lg)) {
+  .navbar {
+    padding: 0 var(--page-margin-desktop);
+  }
+
+  .hamburger {
+    display: none;
+  }
+
+  .brand {
+    font-size: var(--text-2xl);
+  }
+
+  .primaryNav {
+    display: inline-flex;
+  }
+}
+

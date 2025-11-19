@@ -1,0 +1,130 @@
+.panel {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.panelHeader {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panelTitle {
+  font-size: var(--text-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-gray-medium);
+  background-color: var(--color-white);
+  color: var(--color-black);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.toggleButton:hover,
+.toggleButton:focus-visible {
+  background-color: var(--color-gray-light);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.toggleIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--transition-base);
+}
+
+.toggleButton[aria-expanded="true"] .toggleIcon {
+  transform: rotate(-135deg);
+}
+
+.panelContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.searchField {
+  grid-column: span 2;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clearButton {
+  min-width: 9.5rem;
+}
+
+@media (max-width: var(--breakpoint-lg)) {
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .searchField {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: var(--breakpoint-md)) {
+  .panel {
+    padding: var(--space-2);
+  }
+
+  .panelHeader {
+    display: flex;
+  }
+
+  .panelContent[hidden] {
+    display: none;
+  }
+}
+
+@media (max-width: var(--breakpoint-sm)) {
+  .panel {
+    padding: var(--space-2);
+  }
+
+  .filterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .searchField {
+    grid-column: span 1;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .clearButton {
+    width: 100%;
+  }
+}
+

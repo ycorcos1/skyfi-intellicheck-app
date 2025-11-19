@@ -1,0 +1,105 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-gray-dark);
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaLabel {
+  font-weight: 600;
+}
+
+.content {
+  font-size: var(--text-sm);
+  color: var(--color-black);
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.secondaryButton {
+  text-transform: none;
+}
+
+.dangerButton {
+  background-color: rgba(220, 53, 69, 0.12);
+  color: var(--color-error);
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--color-gray-medium);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  font-size: var(--text-sm);
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.35);
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}
+
+.charCount {
+  font-size: var(--text-xs);
+  color: var(--color-gray-dark);
+  align-self: flex-end;
+}
+
+@media (max-width: var(--breakpoint-md)) {
+  .actions,
+  .editorActions {
+    justify-content: flex-start;
+  }
+}
+
