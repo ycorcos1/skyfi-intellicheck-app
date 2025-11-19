@@ -45,3 +45,4 @@ The following variables are required in `.env.local`:
 - `npm run build` – Create an optimized production build.
 - `npm run start` – Run the production server.
 - `npm run lint` – Run ESLint.
+# Frontend deployment trigger
