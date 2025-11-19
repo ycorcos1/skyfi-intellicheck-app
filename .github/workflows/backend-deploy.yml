@@ -62,12 +62,38 @@ jobs:
             --region "${AWS_REGION}"
 
       - name: Wait for ECS service stability
+        timeout-minutes: 15
         run: |
           set -euo pipefail
+          echo "Waiting for ECS service to become stable..."
           aws ecs wait services-stable \
             --cluster "${ECS_CLUSTER}" \
             --services "${ECS_SERVICE}" \
-            --region "${AWS_REGION}"
+            --region "${AWS_REGION}" \
+            || {
+              echo "⚠️  ECS service did not become stable within timeout"
+              echo "Checking service status..."
+              aws ecs describe-services \
+                --cluster "${ECS_CLUSTER}" \
+                --services "${ECS_SERVICE}" \
+                --region "${AWS_REGION}" \
+                --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount,Events:events[0:3]}' \
+                --output json
+              echo "Checking task status..."
+              aws ecs list-tasks \
+                --cluster "${ECS_CLUSTER}" \
+                --service-name "${ECS_SERVICE}" \
+                --region "${AWS_REGION}" \
+                --query 'taskArns[0:2]' \
+                --output json | \
+              xargs -I {} aws ecs describe-tasks \
+                --cluster "${ECS_CLUSTER}" \
+                --tasks {} \
+                --region "${AWS_REGION}" \
+                --query 'tasks[0].{LastStatus:lastStatus,HealthStatus:healthStatus,StoppedReason:stoppedReason}' \
+                --output json || true
+              exit 1
+            }
 
       - name: Run API health checks
         env:
@@ -132,12 +158,38 @@ jobs:
             --region "${AWS_REGION}"
 
       - name: Wait for ECS service stability
+        timeout-minutes: 15
         run: |
           set -euo pipefail
+          echo "Waiting for ECS service to become stable..."
           aws ecs wait services-stable \
             --cluster "${ECS_CLUSTER}" \
             --services "${ECS_SERVICE}" \
-            --region "${AWS_REGION}"
+            --region "${AWS_REGION}" \
+            || {
+              echo "⚠️  ECS service did not become stable within timeout"
+              echo "Checking service status..."
+              aws ecs describe-services \
+                --cluster "${ECS_CLUSTER}" \
+                --services "${ECS_SERVICE}" \
+                --region "${AWS_REGION}" \
+                --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount,Events:events[0:3]}' \
+                --output json
+              echo "Checking task status..."
+              aws ecs list-tasks \
+                --cluster "${ECS_CLUSTER}" \
+                --service-name "${ECS_SERVICE}" \
+                --region "${AWS_REGION}" \
+                --query 'taskArns[0:2]' \
+                --output json | \
+              xargs -I {} aws ecs describe-tasks \
+                --cluster "${ECS_CLUSTER}" \
+                --tasks {} \
+                --region "${AWS_REGION}" \
+                --query 'tasks[0].{LastStatus:lastStatus,HealthStatus:healthStatus,StoppedReason:stoppedReason}' \
+                --output json || true
+              exit 1
+            }
 
       - name: Run API health checks
         env:
