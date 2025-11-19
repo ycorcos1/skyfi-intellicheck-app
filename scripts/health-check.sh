@@ -49,5 +49,3 @@ done
 
 echo "❌ API health check failed after ${MAX_RETRIES} attempts."
 exit 1
-
-# Trigger deployment
