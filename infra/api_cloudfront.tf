@@ -6,8 +6,9 @@ resource "aws_cloudfront_response_headers_policy" "api_cors" {
   comment = "CORS headers for API distribution - allows all origins to match backend CORS config"
 
   cors_config {
-    access_control_allow_credentials = true
-    # When allowCredentials is true, must specify headers explicitly (can't use "*")
+    # Set to false when using wildcard origins per CORS spec
+    # Authentication is via Authorization header, not cookies, so credentials not needed
+    access_control_allow_credentials = false
     access_control_allow_headers {
       items = [
         "Content-Type",
@@ -28,7 +29,6 @@ resource "aws_cloudfront_response_headers_policy" "api_cors" {
     access_control_allow_origins {
       items = ["*"]
     }
-    # When allowCredentials is true, must specify expose headers explicitly (can't use "*")
     access_control_expose_headers {
       items = [
         "Content-Type",

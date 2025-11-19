@@ -54,10 +54,11 @@ app = FastAPI(
 )
 
 # Allow all origins for now; will be tightened once frontend domain is known.
+# Note: allow_credentials must be False when allow_origins=["*"] per CORS spec
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # Set to False when using wildcard origins
     allow_methods=["*"],
     allow_headers=["*"],
 )

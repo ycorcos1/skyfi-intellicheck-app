@@ -22,11 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       S3_BUCKET: skyfi-intellicheck-frontend-dev
-      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
-      NEXT_PUBLIC_API_URL: ${{ secrets.API_URL_DEV }}
-      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_POOL_ID_DEV }}
-      NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID_DEV }}
-      NEXT_PUBLIC_COGNITO_REGION: ${{ secrets.COGNITO_REGION_DEV }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,6 +39,11 @@ jobs:
           npm ci
 
       - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL_DEV }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_POOL_ID_DEV }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID_DEV }}
+          NEXT_PUBLIC_COGNITO_REGION: ${{ secrets.COGNITO_REGION_DEV }}
         run: |
           cd frontend
           npm run build
@@ -61,6 +61,8 @@ jobs:
           aws s3 sync frontend/out "s3://${S3_BUCKET}" --delete
 
       - name: Invalidate CloudFront cache
+        env:
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
         if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: |
           set -euo pipefail
@@ -76,11 +78,6 @@ jobs:
       # url: ${{ secrets.FRONTEND_URL_PROD }}
     env:
       S3_BUCKET: skyfi-intellicheck-frontend-prod
-      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}
-      NEXT_PUBLIC_API_URL: ${{ secrets.API_URL_PROD }}
-      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_POOL_ID_PROD }}
-      NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID_PROD }}
-      NEXT_PUBLIC_COGNITO_REGION: ${{ secrets.COGNITO_REGION_PROD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -98,6 +95,11 @@ jobs:
           npm ci
 
       - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL_PROD }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_POOL_ID_PROD }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID_PROD }}
+          NEXT_PUBLIC_COGNITO_REGION: ${{ secrets.COGNITO_REGION_PROD }}
         run: |
           cd frontend
           npm run build
@@ -115,6 +117,8 @@ jobs:
           aws s3 sync frontend/out "s3://${S3_BUCKET}" --delete
 
       - name: Invalidate CloudFront cache
+        env:
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}
         if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: |
           set -euo pipefail
