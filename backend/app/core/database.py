@@ -67,11 +67,17 @@ class _LazyEngine:
     """Lazy wrapper for engine that only creates it when accessed."""
     def __getattr__(self, name):
         return getattr(_get_engine(), name)
+    
+    def __repr__(self):
+        return repr(_get_engine()) if _engine else "<LazyEngine (not yet created)>"
 
 class _LazySessionLocal:
     """Lazy wrapper for SessionLocal that only creates it when accessed."""
     def __call__(self, *args, **kwargs):
         return _get_session_local()(*args, **kwargs)
+    
+    def __repr__(self):
+        return repr(_get_session_local()) if _SessionLocal else "<LazySessionLocal (not yet created)>"
 
 engine = _LazyEngine()
 SessionLocal = _LazySessionLocal()
