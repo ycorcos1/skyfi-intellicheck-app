@@ -104,3 +104,4 @@ secrets.json
 .cache/
 .temp/
 
+GITHUB_SECRETS_VALUES.md
