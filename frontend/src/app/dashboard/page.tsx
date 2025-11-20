@@ -357,8 +357,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Only load companies if authenticated and not logging out
+    // Add a small delay to ensure auth state is stable
     if (isAuthenticated && !isLoggingOut) {
-      void loadCompanies();
+      const timer = setTimeout(() => {
+        void loadCompanies();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [loadCompanies, refreshToken, isAuthenticated, isLoggingOut]);
 

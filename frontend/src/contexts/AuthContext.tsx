@@ -240,7 +240,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const session = await getCurrentCognitoSession();
         if (session && isMountedRef) {
-          applySession(session);
+          // Verify session is valid before applying
+          try {
+            const accessToken = session.getAccessToken();
+            const idToken = session.getIdToken();
+            if (accessToken && idToken) {
+              // Check if token is expired by comparing expiration time
+              const expiresAt = accessToken.getExpiration() * 1000;
+              const now = Date.now();
+              if (expiresAt > now) {
+                applySession(session);
+              } else {
+                // Session is expired, clear it
+                if (isMountedRef) {
+                  clearPersistedSession();
+                  setUser(null);
+                }
+              }
+            } else {
+              // Missing tokens, clear session
+              if (isMountedRef) {
+                clearPersistedSession();
+                setUser(null);
+              }
+            }
+          } catch (sessionError) {
+            console.error("Session validation error:", sessionError);
+            if (isMountedRef) {
+              clearPersistedSession();
+              setUser(null);
+            }
+          }
         } else if (isMountedRef) {
           clearPersistedSession();
           setUser(null);
