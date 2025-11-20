@@ -16,10 +16,20 @@ mkdir -p "$BUILD_DIR"
 
 # Install dependencies
 echo "Installing Python dependencies..."
-# Try with platform restriction first, fallback to regular install
-python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir 2>&1 | grep -v "WARNING: Target platform" || {
-    echo "Warning: Platform-restricted install failed, trying without restriction..."
-    python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --no-cache-dir
+# Install for Lambda platform (Linux x86_64, Python 3.11)
+# Lambda uses Python 3.11, so we need to specify the Python version and ABI
+python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" \
+    --platform manylinux2014_x86_64 \
+    --only-binary=:all: \
+    --python-version 3.11 \
+    --implementation cp \
+    --abi cp311 \
+    --no-cache-dir 2>&1 | grep -v "WARNING: Target platform" || {
+    echo "Warning: Platform-restricted install failed, trying without Python version restriction..."
+    python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir 2>&1 | grep -v "WARNING: Target platform" || {
+        echo "Warning: Platform install failed, using regular install (may have platform issues)..."
+        python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --no-cache-dir
+    }
 }
 
 # Copy index.py to root (Lambda handler entry point)
