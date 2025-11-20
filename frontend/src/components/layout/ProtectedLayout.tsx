@@ -60,17 +60,25 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
         return;
       }
 
-      // Mark that we're redirecting to prevent loops
+      // Don't redirect immediately on protected pages - give them time to load
+      // This prevents redirects when navigating between pages
+      // Only redirect if we've been on this page for a bit and still not authenticated
       hasRedirectedRef.current = true;
       
       // Use a longer delay to prevent rapid redirects and allow auth state to fully stabilize
+      // Also allows time for API calls to complete before redirecting
       redirectTimerRef.current = setTimeout(() => {
-        // Final check before redirecting
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        // Final check before redirecting - make sure we're still not authenticated
+        // and not already on login page
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.startsWith("/login") &&
+          !isAuthenticated
+        ) {
           router.replace("/login");
         }
         redirectTimerRef.current = null;
-      }, 500); // Increased delay
+      }, 1000); // Increased delay to 1 second to allow page to load
     }
 
     return () => {

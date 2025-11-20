@@ -99,9 +99,12 @@ export default function CompanyDetailPage() {
 
   const loadDetail = useCallback(
     async ({ initial = false }: { initial?: boolean } = {}) => {
-      if (!companyId) {
-        setError("Company ID is required");
-        setLoading(false);
+      // Validate companyId - it should be a non-empty string
+      if (!companyId || typeof companyId !== "string" || companyId.trim() === "") {
+        if (initial) {
+          setError("Company ID is required");
+          setLoading(false);
+        }
         return;
       }
 
@@ -151,10 +154,12 @@ export default function CompanyDetailPage() {
           statusCode: err instanceof Error && "statusCode" in err ? (err as { statusCode: number }).statusCode : undefined,
         });
         
-        // Handle 401 specifically - don't set error state, let ProtectedLayout handle redirect
+        // Handle 401 - show error message instead of redirecting immediately
+        // This prevents the page from redirecting back to dashboard
+        // ProtectedLayout will handle auth redirects separately if needed
         if (err instanceof Error && "statusCode" in err && (err as { statusCode: number }).statusCode === 401) {
-          console.warn("CompanyDetailPage: 401 Unauthorized - ProtectedLayout will handle redirect");
-          // Don't set error state for 401 - ProtectedLayout will redirect
+          console.warn("CompanyDetailPage: 401 Unauthorized - showing error instead of redirecting");
+          setError("Authentication failed. Please refresh the page or sign in again.");
           if (initial) {
             setLoading(false);
           }
