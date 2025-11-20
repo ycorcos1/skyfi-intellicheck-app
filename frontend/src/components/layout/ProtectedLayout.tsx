@@ -60,6 +60,14 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
         return;
       }
 
+      // CRITICAL: Don't redirect if we're on a company detail page
+      // These pages need time to load and may have their own error handling
+      if (currentPath.startsWith("/dashboard/companies/")) {
+        console.log("ProtectedLayout: On company detail page, skipping redirect");
+        hasRedirectedRef.current = false; // Don't mark as redirected
+        return; // Never redirect from company detail pages - let them handle errors
+      }
+
       // Don't redirect immediately on protected pages - give them time to load
       // This prevents redirects when navigating between pages
       // Only redirect if we've been on this page for a bit and still not authenticated
@@ -69,16 +77,17 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
       // Also allows time for API calls to complete before redirecting
       redirectTimerRef.current = setTimeout(() => {
         // Final check before redirecting - make sure we're still not authenticated
-        // and not already on login page
+        // and not already on login page, and NOT on a company detail page
         if (
           typeof window !== "undefined" &&
           !window.location.pathname.startsWith("/login") &&
+          !window.location.pathname.startsWith("/dashboard/companies/") &&
           !isAuthenticated
         ) {
           router.replace("/login");
         }
         redirectTimerRef.current = null;
-      }, 1000); // Increased delay to 1 second to allow page to load
+      }, 2000); // Increased delay to 2 seconds to allow page to fully load
     }
 
     return () => {
@@ -98,7 +107,23 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
     );
   }
 
+  // Don't unmount company detail pages even if not authenticated
+  // Let them handle their own error states
   if (!isAuthenticated) {
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard/companies/")) {
+      // Still render the page so it can show error messages
+      return (
+        <div className="app-shell">
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          <TopNav />
+          <div className="app-shell__content">
+            <BaseLayout>{children}</BaseLayout>
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 

@@ -78,7 +78,15 @@ export default function CompanyDetailPage() {
   const companyIdParam = params?.id;
   const companyId = Array.isArray(companyIdParam) ? companyIdParam[0] : companyIdParam;
 
-  const { getAccessToken } = useAuth();
+  const { getAccessToken, isAuthenticated } = useAuth();
+  
+  // Prevent any redirects - this page should always render even if there are errors
+  useEffect(() => {
+    console.log("CompanyDetailPage: Mounted", { companyId, isAuthenticated });
+    return () => {
+      console.log("CompanyDetailPage: Unmounting", { companyId });
+    };
+  }, [companyId, isAuthenticated]);
 
   const [activeTab, setActiveTab] = useState<CompanyTabKey>("overview");
   const [detail, setDetail] = useState<CompanyDetail | null>(null);
