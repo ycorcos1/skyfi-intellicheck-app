@@ -50,6 +50,14 @@ class DatabaseManager:
                 f"/{db_creds['dbname']}"
             )
             
+            # Log connection info (mask password)
+            safe_url = (
+                f"postgresql://{db_creds['username']}:***"
+                f"@{db_creds['host']}:{db_creds.get('port', '5432')}"
+                f"/{db_creds['dbname']}"
+            )
+            logger.info(f"Connecting to database: {safe_url}")
+            
             self.engine = create_engine(
                 db_url,
                 pool_pre_ping=True,
@@ -59,21 +67,35 @@ class DatabaseManager:
             )
             self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
             
-            logger.info("Database connection initialized")
+            logger.info("Database connection initialized successfully")
             
         except Exception as e:
-            logger.error(f"Failed to initialize database: {str(e)}")
+            logger.error(f"Failed to initialize database: {str(e)}", exc_info=True)
+            logger.error(f"DB Secret ARN: {self.config.db_secret_arn}")
+            logger.error(f"AWS Region: {os.getenv('AWS_REGION', 'us-east-1')}")
             raise
     
     def _get_secret(self) -> dict:
         """Retrieve database credentials from AWS Secrets Manager."""
         try:
-            secrets_client = boto3.client('secretsmanager', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+            region = os.getenv('AWS_REGION', 'us-east-1')
+            logger.info(f"Retrieving database secret from Secrets Manager (ARN: {self.config.db_secret_arn[:50]}..., Region: {region})")
+            secrets_client = boto3.client('secretsmanager', region_name=region)
             response = secrets_client.get_secret_value(SecretId=self.config.db_secret_arn)
             secret = json.loads(response['SecretString'])
+            
+            # Validate required keys
+            required_keys = ['username', 'password', 'host', 'dbname', 'port']
+            missing_keys = [key for key in required_keys if key not in secret]
+            if missing_keys:
+                raise ValueError(f"Secret missing required keys: {missing_keys}. Found keys: {list(secret.keys())}")
+            
+            logger.info("Database secret retrieved successfully")
             return secret
         except Exception as e:
-            logger.error(f"Failed to retrieve secret: {str(e)}")
+            logger.error(f"Failed to retrieve secret: {str(e)}", exc_info=True)
+            logger.error(f"Secret ARN: {self.config.db_secret_arn}")
+            logger.error(f"AWS Region: {os.getenv('AWS_REGION', 'us-east-1')}")
             raise
     
     def get_session(self):

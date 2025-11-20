@@ -561,16 +561,42 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         ]
     }
     """
+    # Initialize basic logging first (before any other operations)
+    import logging as basic_logging
+    basic_logging.basicConfig(
+        level=basic_logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    basic_logger = basic_logging.getLogger(__name__)
+    
     try:
+        basic_logger.info("Lambda handler invoked", extra={"event_keys": list(event.keys()) if isinstance(event, dict) else "not_a_dict"})
+        
         # Load configuration
-        config = WorkerConfig.from_env()
+        try:
+            config = WorkerConfig.from_env()
+            basic_logger.info("Configuration loaded successfully", extra={"has_db_secret_arn": bool(config.db_secret_arn)})
+        except Exception as config_error:
+            basic_logger.error(f"Failed to load configuration: {str(config_error)}", exc_info=True)
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'error': f'Configuration error: {str(config_error)}'
+                })
+            }
         
         # Set up structured logging
-        setup_structured_logging(config.log_level)
+        try:
+            setup_structured_logging(config.log_level)
+        except Exception as logging_error:
+            basic_logger.warning(f"Failed to setup structured logging: {str(logging_error)}, using basic logging")
         
         # Parse SQS event
         if 'Records' not in event:
+            basic_logger.error("Invalid event format: missing 'Records'", extra={"event": str(event)[:500]})
             raise ValueError("Invalid event format: missing 'Records'")
+        
+        basic_logger.info(f"Processing {len(event['Records'])} SQS record(s)")
         
         # Process all records
         async def process_all():
@@ -581,11 +607,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 correlation_id = extract_correlation_id_from_sqs(message_attributes) or generate_correlation_id()
                 set_correlation_id(correlation_id)
                 
+                basic_logger.info(f"Processing record - Correlation ID: {correlation_id}")
                 logger.info(f"Worker started - Correlation ID: {correlation_id}")
                 
                 try:
                     # Initialize components (per record to ensure clean state)
+                    basic_logger.info("Initializing database manager...")
                     db_manager = DatabaseManager(config)
+                    basic_logger.info("Database manager initialized successfully")
                     whois_client = WhoisClient(config)
                     dns_client = DNSClient(config)
                     web_scraper = WebScraper(config)
