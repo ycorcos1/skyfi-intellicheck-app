@@ -7,7 +7,7 @@ import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortD
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
-import { fetchCompanies, createCompany } from "@/lib/companies-api";
+import { fetchCompanies, createCompany, deleteCompany } from "@/lib/companies-api";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -209,6 +209,7 @@ export default function DashboardPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -251,6 +252,34 @@ export default function DashboardPage() {
 
     return data;
   }, [companies, sortDirection, sortedColumn]);
+
+  // Define table columns with delete action (inside component to access handlers)
+  const tableColumnsWithActions: TableColumn<Company>[] = useMemo(() => [
+    ...tableColumns,
+    {
+      key: "actions",
+      label: "Actions",
+      align: "right",
+      render: (_, row) => (
+        <Button
+          variant="danger"
+          size="small"
+          onClick={() => {
+            const confirmed = window.confirm(
+              `Permanently delete ${row.name}? This action cannot be undone. All associated data (analyses, documents, notes) will be permanently deleted.`
+            );
+            if (confirmed) {
+              void handleDeleteCompany(row);
+            }
+          }}
+          disabled={deletingId === row.id}
+          aria-label={`Delete ${row.name}`}
+        >
+          {deletingId === row.id ? "Deleting..." : "Delete"}
+        </Button>
+      ),
+    },
+  ], [deletingId, handleDeleteCompany]);
 
   const handleSort = useCallback((key: string, direction: SortDirection) => {
     setSortedColumn(key);
@@ -351,6 +380,31 @@ export default function DashboardPage() {
   useEffect(() => {
     void loadCompanies();
   }, [loadCompanies, refreshToken]);
+
+  const handleDeleteCompany = useCallback(
+    async (company: Company) => {
+      try {
+        setDeletingId(company.id);
+        const token = await getAccessToken();
+        
+        if (!token) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
+
+        await deleteCompany(company.id, token);
+        
+        // Refresh the companies list
+        await loadCompanies();
+      } catch (err) {
+        console.error("Failed to delete company", err);
+        const message = err instanceof Error ? err.message : "Failed to delete company. Please try again.";
+        setError(message);
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [getAccessToken, loadCompanies],
+  );
 
   const handleCreateCompany = useCallback(
     async (data: CreateCompanyFormState) => {

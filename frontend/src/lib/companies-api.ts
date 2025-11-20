@@ -194,3 +194,10 @@ export async function exportCompanyPdf(id: string, token: string | null, version
   return fetchBinary(`/v1/companies/${id}/export/pdf${query}`, token);
 }
 
+export async function deleteCompany(id: string, token: string | null) {
+  return apiRequest<void>(`/v1/companies/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}
+

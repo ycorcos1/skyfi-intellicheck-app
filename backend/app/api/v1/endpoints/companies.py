@@ -18,6 +18,7 @@ from app.core.logging import get_logger, get_correlation_id
 from app.core.metrics import get_metrics_client
 from app.models.analysis import CompanyAnalysis
 from app.models.company import AnalysisStatus, Company, CompanyStatus
+from app.models.document import Document
 from app.schemas.company import (
     CompanyCreate,
     CompanyCreateResponse,
@@ -453,7 +454,7 @@ async def update_company(
 @router.delete(
     "/{company_id}",
     status_code=http_status.HTTP_204_NO_CONTENT,
-    summary="Soft delete a company",
+    summary="Permanently delete a company",
 )
 async def delete_company(
     company_id: UUID,
@@ -461,7 +462,8 @@ async def delete_company(
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Soft delete a company by toggling the `is_deleted` flag.
+    Permanently delete a company and all associated data from the database.
+    Also deletes all associated S3 documents.
     """
     company = db.query(Company).filter(Company.id == company_id).first()
     if company is None:
@@ -470,28 +472,67 @@ async def delete_company(
             detail=f"Company {company_id} not found",
         )
 
-    if company.is_deleted:
-        raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Company is already deleted",
-        )
-
-    company.is_deleted = True
-
+    correlation_id = get_correlation_id() or "unknown"
+    
     try:
+        # Delete all S3 documents associated with this company
+        from app.services.s3_service import get_s3_service
+        s3_service = get_s3_service()
+        
+        # Get all documents for this company before deletion
+        documents = db.query(Document).filter(Document.company_id == company_id).all()
+        
+        deleted_s3_count = 0
+        failed_s3_count = 0
+        
+        for document in documents:
+            try:
+                if s3_service.delete_object(document.s3_key):
+                    deleted_s3_count += 1
+                else:
+                    failed_s3_count += 1
+                    logger.warning(
+                        "Failed to delete S3 object for document",
+                        extra={
+                            "company_id": str(company_id),
+                            "document_id": str(document.id),
+                            "s3_key": document.s3_key,
+                            "correlation_id": correlation_id,
+                        }
+                    )
+            except Exception as s3_error:
+                failed_s3_count += 1
+                logger.error(
+                    "Error deleting S3 object for document",
+                    extra={
+                        "company_id": str(company_id),
+                        "document_id": str(document.id),
+                        "s3_key": document.s3_key,
+                        "error": str(s3_error),
+                        "correlation_id": correlation_id,
+                    },
+                    exc_info=True
+                )
+        
+        # Permanently delete the company from database
+        # CASCADE will automatically delete: analyses, documents, notes
+        db.delete(company)
         db.commit()
-        correlation_id = get_correlation_id() or "unknown"
+        
         logger.info(
-            "Soft deleted company",
+            "Permanently deleted company",
             extra={
                 "company_id": str(company_id),
+                "company_name": company.name,
                 "user_id": current_user.get("user_id"),
                 "correlation_id": correlation_id,
+                "s3_documents_deleted": deleted_s3_count,
+                "s3_documents_failed": failed_s3_count,
             }
         )
+        
     except Exception as exc:  # pylint: disable=broad-exception-caught
         db.rollback()
-        correlation_id = get_correlation_id() or "unknown"
         logger.error(
             "Failed to delete company",
             extra={
