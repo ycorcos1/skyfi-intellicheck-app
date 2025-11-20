@@ -112,7 +112,24 @@ export default function CompanyDetailPage() {
         }
 
         const token = await getAccessToken();
+        
+        if (!token) {
+          console.error("CompanyDetailPage: No access token available");
+          setError("Authentication required. Please sign in again.");
+          if (initial) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        console.log("CompanyDetailPage: Loading company detail", { companyId, hasToken: !!token });
         const data = await fetchCompanyDetail(companyId, token);
+        console.log("CompanyDetailPage: Company detail loaded successfully", { 
+          companyName: data.company.name,
+          status: data.company.status,
+          analysisStatus: data.company.analysis_status 
+        });
+        
         setDetail(data);
 
         if (data.company.analysis_status === "in_progress" || data.company.analysis_status === "pending") {
@@ -125,6 +142,25 @@ export default function CompanyDetailPage() {
           stopPolling();
         }
       } catch (err) {
+        console.error("CompanyDetailPage: Failed to load company detail", {
+          companyId,
+          error: err,
+          errorType: err instanceof Error ? err.constructor.name : typeof err,
+          errorMessage: err instanceof Error ? err.message : String(err),
+          isApiError: err instanceof Error && "statusCode" in err,
+          statusCode: err instanceof Error && "statusCode" in err ? (err as { statusCode: number }).statusCode : undefined,
+        });
+        
+        // Handle 401 specifically - don't set error state, let ProtectedLayout handle redirect
+        if (err instanceof Error && "statusCode" in err && (err as { statusCode: number }).statusCode === 401) {
+          console.warn("CompanyDetailPage: 401 Unauthorized - ProtectedLayout will handle redirect");
+          // Don't set error state for 401 - ProtectedLayout will redirect
+          if (initial) {
+            setLoading(false);
+          }
+          return;
+        }
+        
         const message = err instanceof Error ? err.message : "Failed to load company details";
         setError(message);
         if (initial) {

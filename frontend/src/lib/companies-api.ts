@@ -131,6 +131,16 @@ export async function markCompanyReviewComplete(id: string, token: string | null
   });
 }
 
+export async function autoApproveIfEligible(id: string, token: string | null) {
+  return apiRequest<{ company_id: string; status: CompanyStatus; updated_at: string }>(
+    `/v1/companies/${id}/auto-approve-if-eligible`,
+    {
+      method: "POST",
+      token,
+    }
+  );
+}
+
 export async function exportCompanyJson(id: string, token: string | null, version?: number) {
   const query = typeof version === "number" ? `?version=${version}` : "";
   return fetchBinary(`/v1/companies/${id}/export/json${query}`, token);

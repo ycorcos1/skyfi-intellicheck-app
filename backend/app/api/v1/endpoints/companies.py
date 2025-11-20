@@ -775,6 +775,100 @@ async def revoke_company_approval(
     )
 
 
+@router.post(
+    "/{company_id}/auto-approve-if-eligible",
+    response_model=StatusUpdateResponse,
+    summary="Auto-approve company if eligible (analysis=COMPLETED, risk_score<=30, status=PENDING)",
+)
+async def auto_approve_if_eligible(
+    company_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Auto-approve a company if it meets eligibility criteria.
+    
+    Eligibility:
+    - analysis_status must be COMPLETED
+    - risk_score must be <= 30
+    - status must be PENDING
+    
+    This is useful for migrating existing companies that were analyzed before
+    the auto-approve logic was implemented in the Lambda worker.
+    """
+    company = (
+        db.query(Company)
+        .filter(Company.id == company_id, Company.is_deleted.is_(False))
+        .first()
+    )
+    
+    if company is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"Company {company_id} not found",
+        )
+    
+    # Check eligibility
+    if company.analysis_status != AnalysisStatus.COMPLETED:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=f"Company analysis is not completed (current: {company.analysis_status.value})",
+        )
+    
+    if company.risk_score > 30:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=f"Company risk score ({company.risk_score}) exceeds threshold (30)",
+        )
+    
+    if company.status != CompanyStatus.PENDING:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=f"Company status is not PENDING (current: {company.status.value})",
+        )
+    
+    # Auto-approve
+    try:
+        company.status = CompanyStatus.APPROVED
+        company.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(company)
+        
+        correlation_id = get_correlation_id() or "unknown"
+        logger.info(
+            "Company auto-approved",
+            extra={
+                "company_id": str(company_id),
+                "risk_score": company.risk_score,
+                "analysis_status": company.analysis_status.value,
+                "user_id": (current_user or {}).get("user_id"),
+                "correlation_id": correlation_id,
+            }
+        )
+        
+        return StatusUpdateResponse(
+            company_id=company.id,
+            status=company.status,
+            updated_at=company.updated_at,
+        )
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        db.rollback()
+        correlation_id = get_correlation_id() or "unknown"
+        logger.error(
+            "Failed to auto-approve company",
+            extra={
+                "company_id": str(company_id),
+                "error": str(exc),
+                "correlation_id": correlation_id,
+            },
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to auto-approve company. Please try again later.",
+        ) from exc
+
+
 @router.get(
     "/{company_id}/analysis/status",
     response_model=AnalysisStatusResponse,

@@ -12,7 +12,7 @@ import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortD
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
-import { fetchCompanies, createCompany, deleteCompany } from "@/lib/companies-api";
+import { fetchCompanies, createCompany, deleteCompany, autoApproveIfEligible } from "@/lib/companies-api";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -340,6 +340,35 @@ export default function DashboardPage() {
 
       setCompanies(response.items);
       setTotalPages(response.pages ?? 0);
+      
+      // Auto-approve eligible companies (analysis=COMPLETED, risk_score<=30, status=PENDING)
+      // This handles companies that were analyzed before the auto-approve logic was added
+      const eligibleCompanies = response.items.filter(
+        (company) =>
+          company.analysis_status === "completed" &&
+          company.risk_score <= 30 &&
+          company.status === "pending"
+      );
+      
+      if (eligibleCompanies.length > 0) {
+        // Auto-approve eligible companies in the background (don't block UI)
+        Promise.all(
+          eligibleCompanies.map(async (company) => {
+            try {
+              await autoApproveIfEligible(company.id, token);
+              console.log(`Auto-approved company: ${company.name} (risk_score: ${company.risk_score})`);
+            } catch (err) {
+              // Silently fail - company might have been updated by another process
+              console.warn(`Failed to auto-approve company ${company.name}:`, err);
+            }
+          })
+        ).then(() => {
+          // Refresh the list after auto-approvals complete
+          void loadCompanies();
+        }).catch((err) => {
+          console.error("Error during auto-approval batch:", err);
+        });
+      }
     } catch (loadError) {
       console.error("Failed to load companies", loadError);
       
