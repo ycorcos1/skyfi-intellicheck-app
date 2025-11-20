@@ -108,6 +108,19 @@
   background-color: rgba(255, 204, 0, 0.16);
 }
 
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover {
+  background-color: rgba(255, 204, 0, 0.12);
+}
+
+.clickableRow:focus-visible {
+  outline: 2px solid var(--color-yellow);
+  outline-offset: -2px;
+}
+
 .cell {
   padding: 1rem 1.5rem;
   font-size: var(--text-base);

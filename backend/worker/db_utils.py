@@ -257,6 +257,14 @@ class DatabaseManager:
                 company.analysis_status = AnalysisStatus.COMPLETED if is_complete else AnalysisStatus.INCOMPLETE
                 company.current_step = "complete"
                 company.last_analyzed_at = datetime.utcnow()
+                
+                # Auto-approve companies with low risk scores (0-30) when analysis completes
+                # Companies with higher risk scores remain PENDING for manual review
+                if is_complete and company.analysis_status == AnalysisStatus.COMPLETED:
+                    from app.models.company import CompanyStatus
+                    if risk_score <= 30 and company.status == CompanyStatus.PENDING:
+                        company.status = CompanyStatus.APPROVED
+                        logger.info(f"Auto-approved company {company_id} (risk_score: {risk_score})")
             
             # Get version before committing (to avoid DetachedInstanceError)
             analysis_version = next_version

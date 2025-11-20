@@ -23,6 +23,7 @@ export interface TableProps<Row extends Record<string, unknown>> {
   getRowKey?: (row: Row, index: number) => React.Key;
   emptyState?: React.ReactNode;
   className?: string;
+  onRowClick?: (row: Row, index: number) => void;
 }
 
 export interface TablePaginationProps {
@@ -47,6 +48,7 @@ export function Table<Row extends Record<string, unknown>>({
   getRowKey,
   emptyState,
   className,
+  onRowClick,
 }: TableProps<Row>) {
   const handleHeaderClick = (column: TableColumn<Row>) => {
     if (!column.sortable || !onSort) {
@@ -146,7 +148,24 @@ export function Table<Row extends Record<string, unknown>>({
             </tr>
           ) : (
             data.map((row, rowIndex) => (
-              <tr key={resolveRowKey(row, rowIndex)} className={styles.row}>
+              <tr
+                key={resolveRowKey(row, rowIndex)}
+                className={composeClassNames(styles.row, onRowClick ? styles.clickableRow : undefined)}
+                onClick={onRowClick ? () => onRowClick(row, rowIndex) : undefined}
+                role={onRowClick ? "button" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(row, rowIndex);
+                        }
+                      }
+                    : undefined
+                }
+                aria-label={onRowClick ? `View details for ${"name" in row ? String(row.name) : "company"}` : undefined}
+              >
                 {columns.map((column) => {
                   const columnKey = column.key.toString();
                   const cellContent = renderCellContent(column, row, rowIndex);

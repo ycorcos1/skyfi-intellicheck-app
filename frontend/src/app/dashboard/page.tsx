@@ -16,6 +16,7 @@ import { fetchCompanies, createCompany, deleteCompany } from "@/lib/companies-ap
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./dashboard.module.css";
 
 const STATUS_LABELS: Record<CompanyStatus, string> = {
