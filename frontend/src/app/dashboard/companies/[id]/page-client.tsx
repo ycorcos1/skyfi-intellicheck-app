@@ -82,11 +82,25 @@ export default function CompanyDetailPage() {
   
   // Prevent any redirects - this page should always render even if there are errors
   useEffect(() => {
-    console.log("CompanyDetailPage: Mounted", { companyId, isAuthenticated });
+    console.log("CompanyDetailPage: Mounted", { 
+      companyId, 
+      isAuthenticated,
+      params,
+      pathname: typeof window !== "undefined" ? window.location.pathname : "N/A"
+    });
     return () => {
       console.log("CompanyDetailPage: Unmounting", { companyId });
     };
-  }, [companyId, isAuthenticated]);
+  }, [companyId, isAuthenticated, params]);
+  
+  // Log when companyId changes
+  useEffect(() => {
+    if (companyId) {
+      console.log("CompanyDetailPage: companyId available", { companyId });
+    } else {
+      console.warn("CompanyDetailPage: companyId is missing", { params, companyIdParam });
+    }
+  }, [companyId, params, companyIdParam]);
 
   const [activeTab, setActiveTab] = useState<CompanyTabKey>("overview");
   const [detail, setDetail] = useState<CompanyDetail | null>(null);
