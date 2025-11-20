@@ -7,3 +7,5 @@ from worker.handler import lambda_handler
 # Lambda expects handler function at module level
 __all__ = ['lambda_handler']
 
+# Deployment trigger: Lambda worker ready for SQS processing
+
