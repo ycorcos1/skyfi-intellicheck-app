@@ -519,7 +519,7 @@ async def _process_company(
         llm_details=llm_details
     )
     
-    # Get analysis version before session closes (to avoid DetachedInstanceError)
+    # Get analysis version (db_manager.save_analysis now sets it before returning)
     analysis_version = analysis.version
     
     # Record metrics

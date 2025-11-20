@@ -258,12 +258,17 @@ class DatabaseManager:
                 company.current_step = "complete"
                 company.last_analyzed_at = datetime.utcnow()
             
+            # Get version before committing (to avoid DetachedInstanceError)
+            analysis_version = next_version
+            
             session.commit()
             logger.info(
-                f"Saved analysis version {next_version} for company {company_id} "
+                f"Saved analysis version {analysis_version} for company {company_id} "
                 f"(risk_score: {risk_score}, is_complete: {is_complete})"
             )
             
+            # Set version on analysis object for return (session still open until function returns)
+            analysis.version = analysis_version
             return analysis
             
         except Exception as e:

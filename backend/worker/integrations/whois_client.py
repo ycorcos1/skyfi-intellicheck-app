@@ -50,16 +50,16 @@ class WhoisClient:
             if hasattr(whois_data, 'creation_date'):
                 creation_date = self._parse_date(whois_data.creation_date)
                 if creation_date:
-                    # Ensure both datetimes are timezone-aware or both naive
+                    # Ensure both datetimes are naive (no timezone) for subtraction
                     now = datetime.utcnow()
-                    # If creation_date is timezone-aware, make now aware too
-                    if creation_date.tzinfo is not None:
-                        from datetime import timezone
-                        now = datetime.now(timezone.utc)
-                    # If creation_date is naive, ensure now is also naive
+                    # _parse_date already normalizes to naive, so just subtract
+                    from datetime import timedelta
+                    age_delta = now - creation_date
+                    if isinstance(age_delta, timedelta):
+                        domain_age_days = age_delta.days
                     else:
-                        now = datetime.utcnow()
-                    domain_age_days = (now - creation_date.replace(tzinfo=None) if creation_date.tzinfo else creation_date).days
+                        # Fallback if subtraction fails
+                        domain_age_days = None
             
             # Extract registrar
             registrar = None
