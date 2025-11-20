@@ -42,31 +42,53 @@ def verify_token(token: str) -> Dict[str, Any]:
             detail="Invalid authentication credentials",
         ) from exc
 
+    # First, decode without verification to inspect the token
+    from jwt import decode as jwt_decode_unverified
+    unverified = jwt_decode_unverified(token, options={"verify_signature": False})
+    
+    # Cognito tokens may have 'client_id' instead of 'aud' claim
+    # Check both 'aud' and 'client_id' for audience validation
+    token_audience = unverified.get("aud") or unverified.get("client_id")
+    
     decode_kwargs: Dict[str, Any] = {
         "algorithms": ["RS256"],
         "issuer": settings.cognito_issuer_url,
-        "options": {"verify_aud": bool(settings.cognito_app_client_id)},
+        "options": {"verify_aud": False},  # We'll validate audience manually
     }
-
-    if settings.cognito_app_client_id:
-        decode_kwargs["audience"] = settings.cognito_app_client_id
 
     try:
         payload: Dict[str, Any] = jwt_decode(token, signing_key.key, **decode_kwargs)
+        
+        # Manual audience validation
+        if settings.cognito_app_client_id:
+            if not token_audience:
+                logger.error("Token missing both 'aud' and 'client_id' claims")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication credentials",
+                )
+            
+            if token_audience != settings.cognito_app_client_id:
+                logger.error(
+                    "Token audience mismatch: expected %s, got %s",
+                    settings.cognito_app_client_id,
+                    token_audience
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication credentials",
+                )
+        
         logger.debug("Token validated successfully for user: %s", payload.get("sub"))
+    except HTTPException:
+        raise
     except InvalidTokenError as exc:
         logger.error("Token validation failed: %s", str(exc))
         logger.error("Expected issuer: %s", settings.cognito_issuer_url)
         logger.error("Expected audience: %s", settings.cognito_app_client_id)
-        # Try to decode without verification to see what's in the token
-        try:
-            from jwt import decode as jwt_decode_unverified
-            unverified = jwt_decode_unverified(token, options={"verify_signature": False})
-            logger.error("Token issuer: %s", unverified.get("iss"))
-            logger.error("Token audience: %s", unverified.get("aud"))
-            logger.error("Token client_id: %s", unverified.get("client_id"))
-        except Exception:
-            pass
+        logger.error("Token issuer: %s", unverified.get("iss"))
+        logger.error("Token audience: %s", unverified.get("aud"))
+        logger.error("Token client_id: %s", unverified.get("client_id"))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
