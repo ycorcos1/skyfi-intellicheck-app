@@ -7,7 +7,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import status as http_status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -57,7 +58,7 @@ def _apply_status_action(company: Company, action: str) -> CompanyStatus:
     new_status = STATUS_TRANSITIONS.get(transition_key)
     if new_status is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid status transition: {company.status.value} -> {action}",
         )
     company.status = new_status
@@ -101,7 +102,7 @@ def _perform_status_update(
     )
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
@@ -146,7 +147,7 @@ def _perform_status_update(
             exc_info=True,
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update company status. Please try again later.",
         ) from exc
 
@@ -154,7 +155,7 @@ def _perform_status_update(
 @router.post(
     "",
     response_model=CompanyCreateResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create a new company and enqueue analysis",
 )
 async def create_company(
@@ -238,7 +239,7 @@ async def create_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create company. Please try again later.",
         ) from exc
 
@@ -265,7 +266,7 @@ async def list_companies(
     try:
         if risk_min is not None and risk_max is not None and risk_min > risk_max:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="risk_min cannot be greater than risk_max",
             )
 
@@ -307,7 +308,7 @@ async def list_companies(
     except Exception as exc:
         logger.error("Error listing companies: %s", str(exc), exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve companies. Please try again later.",
         ) from exc
 
@@ -327,7 +328,7 @@ async def get_company(
     company = db.query(Company).filter(Company.id == company_id).first()
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
@@ -364,13 +365,13 @@ async def update_company(
     company = db.query(Company).filter(Company.id == company_id).first()
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
     if company.last_analyzed_at is not None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Company cannot be edited after analysis. Please request re-analysis instead.",
         )
 
@@ -411,14 +412,14 @@ async def update_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update company. Please try again later.",
         ) from exc
 
 
 @router.delete(
     "/{company_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=http_status.HTTP_204_NO_CONTENT,
     summary="Soft delete a company",
 )
 async def delete_company(
@@ -432,13 +433,13 @@ async def delete_company(
     company = db.query(Company).filter(Company.id == company_id).first()
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
     if company.is_deleted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Company is already deleted",
         )
 
@@ -468,7 +469,7 @@ async def delete_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete company. Please try again later.",
         ) from exc
 
@@ -489,13 +490,13 @@ async def restore_company(
     company = db.query(Company).filter(Company.id == company_id).first()
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
     if not company.is_deleted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Company is not deleted",
         )
 
@@ -527,7 +528,7 @@ async def restore_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to restore company. Please try again later.",
         ) from exc
 
@@ -551,7 +552,7 @@ async def reanalyze_company(
     )
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
@@ -567,13 +568,13 @@ async def reanalyze_company(
         )
         if latest_analysis is None:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="No previous analysis found to retry failed checks.",
             )
         failed_checks = latest_analysis.failed_checks or []
         if not failed_checks:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="Latest analysis has no failed checks to retry.",
             )
 
@@ -637,7 +638,7 @@ async def reanalyze_company(
             exc_info=True,
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to enqueue analysis. Please try again later.",
         ) from exc
 
@@ -714,7 +715,7 @@ async def get_analysis_status(
     company = db.query(Company).filter(Company.id == company_id).first()
     if company is None or company.is_deleted:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
@@ -779,7 +780,7 @@ async def list_company_analyses(
 
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
@@ -825,13 +826,13 @@ async def export_company_json(
     company, analysis = export_service.fetch_company_with_analysis(db, company_id, version)
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
     if version is not None and analysis is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Analysis version {version} not found for company {company_id}",
         )
 
@@ -878,13 +879,13 @@ async def export_company_pdf(
     company, analysis = export_service.fetch_company_with_analysis(db, company_id, version)
     if company is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Company {company_id} not found",
         )
 
     if version is not None and analysis is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Analysis version {version} not found for company {company_id}",
         )
 
@@ -905,7 +906,7 @@ async def export_company_pdf(
             exc_info=True,
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate PDF report. Please try again later.",
         ) from exc
 
