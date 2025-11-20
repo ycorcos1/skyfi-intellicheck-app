@@ -18,18 +18,43 @@ mkdir -p "$BUILD_DIR"
 echo "Installing Python dependencies..."
 python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir
 
-# Copy worker code
+# Copy index.py to root (Lambda handler entry point)
+echo "Copying Lambda entry point..."
+cp "${SCRIPT_DIR}/index.py" "$BUILD_DIR/" 2>/dev/null || true
+
+# Create worker directory structure
+echo "Creating worker directory structure..."
+mkdir -p "$BUILD_DIR/worker"
+
+# Copy worker code to worker/ directory (excluding index.py)
 echo "Copying worker code..."
-cp -r "${SCRIPT_DIR}"/*.py "$BUILD_DIR/" 2>/dev/null || true
+for py_file in "${SCRIPT_DIR}"/*.py; do
+    filename=$(basename "$py_file")
+    if [ "$filename" != "index.py" ]; then
+        cp "$py_file" "$BUILD_DIR/worker/" 2>/dev/null || true
+    fi
+done
 
 # Copy worker modules
 if [ -d "${SCRIPT_DIR}/integrations" ]; then
-    cp -r "${SCRIPT_DIR}/integrations" "$BUILD_DIR/"
+    cp -r "${SCRIPT_DIR}/integrations" "$BUILD_DIR/worker/"
 fi
 
 if [ -d "${SCRIPT_DIR}/scoring" ]; then
-    cp -r "${SCRIPT_DIR}/scoring" "$BUILD_DIR/"
+    cp -r "${SCRIPT_DIR}/scoring" "$BUILD_DIR/worker/"
 fi
+
+# Copy worker __init__.py if it exists
+if [ -f "${SCRIPT_DIR}/__init__.py" ]; then
+    cp "${SCRIPT_DIR}/__init__.py" "$BUILD_DIR/worker/"
+fi
+
+# Copy other worker files (correlation, rate_limiter, observability, models, etc.)
+for file in correlation.py rate_limiter.py observability.py models.py; do
+    if [ -f "${SCRIPT_DIR}/${file}" ]; then
+        cp "${SCRIPT_DIR}/${file}" "$BUILD_DIR/worker/"
+    fi
+done
 
 # Copy necessary backend app modules (models)
 echo "Copying backend app models..."
