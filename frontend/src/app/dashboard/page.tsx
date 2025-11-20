@@ -253,35 +253,6 @@ export default function DashboardPage() {
     return data;
   }, [companies, sortDirection, sortedColumn]);
 
-  // Define table columns with delete action (inside component to access handlers)
-  const tableColumnsWithActions: TableColumn<Company>[] = useMemo(() => [
-    ...tableColumns,
-    {
-      key: "actions",
-      label: "Actions",
-      align: "right",
-      render: (_, row) => (
-        <Button
-          className={styles.dangerButton}
-          onClick={() => {
-            const confirmed = window.confirm(
-              `Permanently delete ${row.name}? This action cannot be undone. All associated data (analyses, documents, notes) will be permanently deleted.`
-            );
-            if (confirmed) {
-              void handleDeleteCompany(row);
-            }
-          }}
-          disabled={deletingId === row.id}
-          isLoading={deletingId === row.id}
-          loadingText="Deleting..."
-          aria-label={`Delete ${row.name}`}
-        >
-          Delete
-        </Button>
-      ),
-    },
-  ], [deletingId, handleDeleteCompany]);
-
   const handleSort = useCallback((key: string, direction: SortDirection) => {
     setSortedColumn(key);
     setSortDirection(direction);
@@ -405,6 +376,37 @@ export default function DashboardPage() {
       }
     },
     [getAccessToken, loadCompanies],
+  );
+
+  const tableColumnsWithActions: TableColumn<Company>[] = useMemo(
+    () => [
+      ...tableColumns,
+      {
+        key: "actions",
+        label: "Actions",
+        align: "right",
+        render: (_, row) => (
+          <Button
+            className={styles.dangerButton}
+            onClick={() => {
+              const confirmed = window.confirm(
+                `Permanently delete ${row.name}? This action cannot be undone. All associated data (analyses, documents, notes) will be permanently deleted.`
+              );
+              if (confirmed) {
+                void handleDeleteCompany(row);
+              }
+            }}
+            disabled={deletingId === row.id}
+            isLoading={deletingId === row.id}
+            loadingText="Deleting..."
+            aria-label={`Delete ${row.name}`}
+          >
+            Delete
+          </Button>
+        ),
+      },
+    ],
+    [deletingId, handleDeleteCompany],
   );
 
   const handleCreateCompany = useCallback(
