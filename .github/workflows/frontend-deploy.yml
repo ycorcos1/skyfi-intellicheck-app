@@ -9,6 +9,7 @@ on:
       - "frontend/**"
       - ".github/workflows/frontend-deploy.yml"
       - "scripts/deploy-frontend.sh"
+  workflow_dispatch: # Allow manual triggering
 
 env:
   AWS_REGION: us-east-1
