@@ -84,9 +84,18 @@ if [ -f "${SCRIPT_DIR}/../app/models/analysis.py" ]; then
     cp "${SCRIPT_DIR}/../app/models/analysis.py" "$BUILD_DIR/app/models/"
 fi
 
-# Copy database module
+# Copy core modules (database, config)
 if [ -f "${SCRIPT_DIR}/../app/core/database.py" ]; then
     cp "${SCRIPT_DIR}/../app/core/database.py" "$BUILD_DIR/app/core/"
+fi
+
+if [ -f "${SCRIPT_DIR}/../app/core/config.py" ]; then
+    cp "${SCRIPT_DIR}/../app/core/config.py" "$BUILD_DIR/app/core/"
+fi
+
+# Copy backend/config.py (required by app.core.config)
+if [ -f "${SCRIPT_DIR}/../config.py" ]; then
+    cp "${SCRIPT_DIR}/../config.py" "$BUILD_DIR/"
 fi
 
 # Create deployment package
