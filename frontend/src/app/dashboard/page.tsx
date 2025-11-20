@@ -200,6 +200,7 @@ function parseRiskInput(value: string): number | undefined {
 
 export default function DashboardPage() {
   const { getAccessToken, logout, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<CompanyStatus | "all">("all");
