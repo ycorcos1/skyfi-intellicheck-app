@@ -43,8 +43,15 @@ def verify_token(token: str) -> Dict[str, Any]:
         ) from exc
 
     # First, decode without verification to inspect the token
-    from jwt import decode as jwt_decode_unverified
-    unverified = jwt_decode_unverified(token, options={"verify_signature": False})
+    try:
+        from jwt import decode as jwt_decode_unverified
+        unverified = jwt_decode_unverified(token, options={"verify_signature": False})
+    except Exception as exc:
+        logger.error("Failed to decode token for inspection: %s", str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        ) from exc
     
     # Cognito tokens may have 'client_id' instead of 'aud' claim
     # Check both 'aud' and 'client_id' for audience validation
@@ -92,6 +99,12 @@ def verify_token(token: str) -> Dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
+        ) from exc
+    except Exception as exc:
+        logger.error("Unexpected error during token validation: %s", str(exc), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication error",
         ) from exc
 
     return payload

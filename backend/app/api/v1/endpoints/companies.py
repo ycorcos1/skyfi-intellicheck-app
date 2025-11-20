@@ -257,49 +257,59 @@ async def list_companies(
     risk_max: Optional[int] = Query(None, ge=0, le=100, description="Maximum risk score"),
     include_deleted: bool = Query(False, description="Include soft-deleted companies"),
     db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
     Retrieve a paginated list of companies with optional filtering capabilities.
     """
-    if risk_min is not None and risk_max is not None and risk_min > risk_max:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="risk_min cannot be greater than risk_max",
+    try:
+        if risk_min is not None and risk_max is not None and risk_min > risk_max:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="risk_min cannot be greater than risk_max",
+            )
+
+        query = db.query(Company)
+
+        if not include_deleted:
+            query = query.filter(Company.is_deleted.is_(False))
+
+        if search:
+            query = query.filter(Company.name.ilike(f"%{search.strip()}%"))
+
+        if status:
+            query = query.filter(Company.status == status)
+
+        if risk_min is not None:
+            query = query.filter(Company.risk_score >= risk_min)
+        if risk_max is not None:
+            query = query.filter(Company.risk_score <= risk_max)
+
+        total = query.count()
+        pages = (total + limit - 1) // limit if total else 0
+
+        items = (
+            query.order_by(Company.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
         )
 
-    query = db.query(Company)
-
-    if not include_deleted:
-        query = query.filter(Company.is_deleted.is_(False))
-
-    if search:
-        query = query.filter(Company.name.ilike(f"%{search.strip()}%"))
-
-    if status:
-        query = query.filter(Company.status == status)
-
-    if risk_min is not None:
-        query = query.filter(Company.risk_score >= risk_min)
-    if risk_max is not None:
-        query = query.filter(Company.risk_score <= risk_max)
-
-    total = query.count()
-    pages = (total + limit - 1) // limit if total else 0
-
-    items = (
-        query.order_by(Company.created_at.desc())
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    )
-
-    return CompanyListResponse(
-        items=[CompanyListItem.model_validate(item) for item in items],
-        total=total,
-        page=page,
-        limit=limit,
-        pages=max(pages, 1) if total else 0,
-    )
+        return CompanyListResponse(
+            items=[CompanyListItem.model_validate(item) for item in items],
+            total=total,
+            page=page,
+            limit=limit,
+            pages=max(pages, 1) if total else 0,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error listing companies: %s", str(exc), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve companies. Please try again later.",
+        ) from exc
 
 
 @router.get(
