@@ -152,41 +152,15 @@ def on_startup() -> None:
         }
     )
     
-    # Run database migrations on startup
+    # Create database tables if they don't exist
     try:
-        from alembic import config as alembic_config
-        from alembic import script
-        from alembic.runtime import migration
-        from app.core.database import engine
-        
-        # Check if migrations need to be run
-        alembic_cfg = alembic_config.Config("alembic.ini")
-        script_dir = script.ScriptDirectory.from_config(alembic_cfg)
-        
-        with engine.connect() as connection:
-            context = migration.MigrationContext.configure(connection)
-            current_rev = context.get_current_revision()
-            head_rev = script_dir.get_current_head()
-            
-            if current_rev != head_rev:
-                logger.info(f"Running database migrations: {current_rev} -> {head_rev}")
-                from alembic.command import upgrade
-                upgrade(alembic_cfg, "head")
-                logger.info("Database migrations completed successfully")
-            else:
-                logger.info("Database is up to date")
-    except FileNotFoundError:
-        # If alembic.ini doesn't exist, create tables directly
-        logger.info("Alembic config not found, creating tables directly")
-        try:
-            from app.core.database import Base, engine
-            Base.metadata.create_all(bind=engine)
-            logger.info("Database tables created successfully")
-        except Exception as e:
-            logger.error(f"Failed to create database tables: {e}", exc_info=True)
+        from app.core.database import Base, engine
+        logger.info("Creating database tables if they don't exist...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables ready")
     except Exception as e:
-        logger.error(f"Failed to run database migrations: {e}", exc_info=True)
-        # Don't crash the app - allow it to start even if migrations fail
+        logger.error(f"Failed to create database tables: {e}", exc_info=True)
+        # Don't crash the app - allow it to start even if table creation fails
         # The health check will show database status
 
 
