@@ -27,12 +27,16 @@ def verify_token(token: str) -> Dict[str, Any]:
     """
     Validate a Cognito-issued JWT and return its payload.
     """
+    import logging
+    logger = logging.getLogger(__name__)
 
     jwk_client = get_jwk_client()
 
     try:
         signing_key = jwk_client.get_signing_key_from_jwt(token)
     except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.error("Failed to get signing key from JWT: %s", str(exc))
+        logger.error("Cognito issuer URL: %s", settings.cognito_issuer_url)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
@@ -49,7 +53,20 @@ def verify_token(token: str) -> Dict[str, Any]:
 
     try:
         payload: Dict[str, Any] = jwt_decode(token, signing_key.key, **decode_kwargs)
+        logger.debug("Token validated successfully for user: %s", payload.get("sub"))
     except InvalidTokenError as exc:
+        logger.error("Token validation failed: %s", str(exc))
+        logger.error("Expected issuer: %s", settings.cognito_issuer_url)
+        logger.error("Expected audience: %s", settings.cognito_app_client_id)
+        # Try to decode without verification to see what's in the token
+        try:
+            from jwt import decode as jwt_decode_unverified
+            unverified = jwt_decode_unverified(token, options={"verify_signature": False})
+            logger.error("Token issuer: %s", unverified.get("iss"))
+            logger.error("Token audience: %s", unverified.get("aud"))
+            logger.error("Token client_id: %s", unverified.get("client_id"))
+        except Exception:
+            pass
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",

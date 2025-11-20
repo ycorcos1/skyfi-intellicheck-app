@@ -60,6 +60,16 @@ export async function apiRequest<T>(
     });
 
     if (response.status === 401) {
+      // Log detailed error for debugging
+      const errorText = await response.text().catch(() => "");
+      console.error("API 401 Error:", {
+        endpoint,
+        url,
+        errorDetail: errorText,
+        hasToken: !!token,
+        tokenLength: token?.length,
+      });
+      
       // Don't do hard redirect here - let ProtectedLayout handle it
       // Hard redirects cause page reloads and can create loops
       // The ProtectedLayout will detect auth failure and redirect appropriately
