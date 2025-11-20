@@ -272,7 +272,7 @@ async def list_companies(
         query = db.query(Company)
 
         if not include_deleted:
-            query = query.filter(Company.is_deleted.is_(False))
+            query = query.filter(Company.is_deleted == False)
 
         if search:
             query = query.filter(Company.name.ilike(f"%{search.strip()}%"))
