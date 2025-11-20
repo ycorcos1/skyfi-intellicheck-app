@@ -3,7 +3,7 @@
 import { BaseLayout } from "@/components/layout/BaseLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { TopNav } from "./TopNav";
 
 export interface ProtectedLayoutProps {
@@ -15,22 +15,44 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const router = useRouter();
   const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasRedirectedRef = useRef(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Wait for initial auth load to complete before doing any redirects
+  useEffect(() => {
+    if (!isLoading && !hasInitialized) {
+      // Auth has finished loading, mark as initialized
+      const timer = setTimeout(() => {
+        setHasInitialized(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, hasInitialized]);
 
   useEffect(() => {
+    // Don't do anything until auth has initialized
+    if (!hasInitialized || isLoading) {
+      return;
+    }
+
     // Clear any pending redirects
     if (redirectTimerRef.current) {
       clearTimeout(redirectTimerRef.current);
       redirectTimerRef.current = null;
     }
 
-    // Don't redirect if still loading
+    // Don't redirect if still loading - wait for auth to finish initializing
     if (isLoading) {
+      hasRedirectedRef.current = false; // Reset on loading state
       return;
     }
 
-    // If authenticated, reset redirect flag
+    // If authenticated, reset redirect flag and clear any pending redirects
     if (isAuthenticated) {
       hasRedirectedRef.current = false;
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
       return;
     }
 
@@ -40,20 +62,21 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
       
       // Don't redirect if already on login page
       if (currentPath.startsWith("/login")) {
+        hasRedirectedRef.current = false; // Reset if already on login
         return;
       }
 
       // Mark that we're redirecting to prevent loops
       hasRedirectedRef.current = true;
       
-      // Use a delay to prevent rapid redirects and allow auth state to stabilize
+      // Use a longer delay to prevent rapid redirects and allow auth state to fully stabilize
       redirectTimerRef.current = setTimeout(() => {
-        // Double-check we're still not authenticated and not on login page
+        // Final check before redirecting
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           router.replace("/login");
         }
         redirectTimerRef.current = null;
-      }, 300);
+      }, 500); // Increased delay
     }
 
     return () => {

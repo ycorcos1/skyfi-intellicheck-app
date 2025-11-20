@@ -228,18 +228,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Initialize session only after mount to prevent hydration mismatch
+  // Only run once on mount - don't re-run on dependency changes
   useEffect(() => {
     if (!isMounted) {
       return;
     }
 
     let isMountedRef = true;
+    let initialized = false;
 
     const initialise = async () => {
+      // Prevent multiple initializations
+      if (initialized) {
+        return;
+      }
+      initialized = true;
+
       setIsLoading(true);
       try {
         const session = await getCurrentCognitoSession();
-        if (session && isMountedRef) {
+        if (!isMountedRef) {
+          return;
+        }
+
+        if (session) {
           // Verify session is valid before applying
           try {
             const accessToken = session.getAccessToken();
@@ -252,26 +264,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 applySession(session);
               } else {
                 // Session is expired, clear it
-                if (isMountedRef) {
-                  clearPersistedSession();
-                  setUser(null);
-                }
-              }
-            } else {
-              // Missing tokens, clear session
-              if (isMountedRef) {
                 clearPersistedSession();
                 setUser(null);
               }
-            }
-          } catch (sessionError) {
-            console.error("Session validation error:", sessionError);
-            if (isMountedRef) {
+            } else {
+              // Missing tokens, clear session
               clearPersistedSession();
               setUser(null);
             }
+          } catch (sessionError) {
+            console.error("Session validation error:", sessionError);
+            clearPersistedSession();
+            setUser(null);
           }
-        } else if (isMountedRef) {
+        } else {
+          // No session found
           clearPersistedSession();
           setUser(null);
         }
@@ -293,7 +300,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMountedRef = false;
     };
-  }, [applySession, isMounted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted]); // Only depend on isMounted to prevent re-initialization
 
   // Token refresh polling
   useEffect(() => {
