@@ -519,6 +519,9 @@ async def _process_company(
         llm_details=llm_details
     )
     
+    # Get analysis version before session closes (to avoid DetachedInstanceError)
+    analysis_version = analysis.version
+    
     # Record metrics
     if is_complete:
         metrics.record_analysis_success(company_id, duration_seconds, correlation_id)
@@ -538,7 +541,7 @@ async def _process_company(
         'is_complete': is_complete,
         'successful_checks': successful_checks_list,
         'failed_checks': failed_checks_list,
-        'analysis_version': analysis.version,
+        'analysis_version': analysis_version,
         'duration_seconds': duration_seconds
     }
 

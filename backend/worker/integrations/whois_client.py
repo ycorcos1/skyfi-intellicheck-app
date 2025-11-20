@@ -50,7 +50,16 @@ class WhoisClient:
             if hasattr(whois_data, 'creation_date'):
                 creation_date = self._parse_date(whois_data.creation_date)
                 if creation_date:
-                    domain_age_days = (datetime.utcnow() - creation_date).days
+                    # Ensure both datetimes are timezone-aware or both naive
+                    now = datetime.utcnow()
+                    # If creation_date is timezone-aware, make now aware too
+                    if creation_date.tzinfo is not None:
+                        from datetime import timezone
+                        now = datetime.now(timezone.utc)
+                    # If creation_date is naive, ensure now is also naive
+                    else:
+                        now = datetime.utcnow()
+                    domain_age_days = (now - creation_date.replace(tzinfo=None) if creation_date.tzinfo else creation_date).days
             
             # Extract registrar
             registrar = None
@@ -114,11 +123,18 @@ class WhoisClient:
         
         # Already a datetime
         if isinstance(date_value, datetime):
+            # Normalize to naive datetime (remove timezone info)
+            if date_value.tzinfo is not None:
+                return date_value.replace(tzinfo=None)
             return date_value
         
         # Try to parse string
         try:
-            return date_parser.parse(str(date_value))
+            parsed = date_parser.parse(str(date_value))
+            # Normalize to naive datetime
+            if parsed.tzinfo is not None:
+                return parsed.replace(tzinfo=None)
+            return parsed
         except Exception:
             return None
 

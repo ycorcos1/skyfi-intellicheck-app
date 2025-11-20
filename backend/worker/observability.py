@@ -199,7 +199,13 @@ class WorkerLogger:
     
     def error(self, message: str, **kwargs):
         """Log error message with correlation ID."""
-        self.logger.error(message, extra=self._get_extra(**kwargs))
+        # Extract exc_info if present (to avoid conflict with extra dict)
+        exc_info = kwargs.pop('exc_info', None)
+        extra = self._get_extra(**kwargs)
+        if exc_info is not None:
+            self.logger.error(message, extra=extra, exc_info=exc_info)
+        else:
+            self.logger.error(message, extra=extra)
     
     def warning(self, message: str, **kwargs):
         """Log warning message with correlation ID."""
