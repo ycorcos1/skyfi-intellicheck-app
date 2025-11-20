@@ -147,7 +147,7 @@ def _perform_status_update(
             exc_info=True,
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update company status. Please try again later.",
         ) from exc
 
@@ -239,7 +239,7 @@ async def create_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create company. Please try again later.",
         ) from exc
 
@@ -308,7 +308,7 @@ async def list_companies(
     except Exception as exc:
         logger.error("Error listing companies: %s", str(exc), exc_info=True)
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve companies. Please try again later.",
         ) from exc
 
@@ -412,7 +412,7 @@ async def update_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update company. Please try again later.",
         ) from exc
 
@@ -469,7 +469,7 @@ async def delete_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete company. Please try again later.",
         ) from exc
 
@@ -528,7 +528,7 @@ async def restore_company(
             exc_info=True
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to restore company. Please try again later.",
         ) from exc
 
@@ -638,7 +638,7 @@ async def reanalyze_company(
             exc_info=True,
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to enqueue analysis. Please try again later.",
         ) from exc
 
@@ -906,7 +906,7 @@ async def export_company_pdf(
             exc_info=True,
         )
         raise HTTPException(
-            status_code=http_http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate PDF report. Please try again later.",
         ) from exc
 
