@@ -509,6 +509,12 @@ export default function CompanyDetailPage() {
     return (
       <ProtectedLayout>
         <div className={styles.page}>
+          <div style={{ padding: "20px", border: "2px solid red", margin: "20px" }}>
+            <h2>Company Detail Page - LOADING</h2>
+            <p>Company ID: {companyId || "NOT FOUND"}</p>
+            <p>Pathname: {typeof window !== "undefined" ? window.location.pathname : "N/A"}</p>
+            <p>Authenticated: {isAuthenticated ? "Yes" : "No"}</p>
+          </div>
           <LoadingSkeleton rows={10} columns={1} />
         </div>
       </ProtectedLayout>
@@ -520,13 +526,26 @@ export default function CompanyDetailPage() {
       <ProtectedLayout>
         <div className={styles.page}>
           <div className={styles.errorState}>
-            <p>{error ?? "Company not found"}</p>
+            <h2>Company Detail Page</h2>
+            <p>Company ID: {companyId || "NOT FOUND"}</p>
+            <p>Error: {error ?? "Company not found"}</p>
+            <p>Loading: {loading ? "Yes" : "No"}</p>
+            <p>Authenticated: {isAuthenticated ? "Yes" : "No"}</p>
             <Button
               onClick={() => {
                 void loadDetail({ initial: true });
               }}
             >
               Retry
+            </Button>
+            <Button
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.location.href = "/dashboard";
+                }
+              }}
+            >
+              Back to Dashboard
             </Button>
           </div>
         </div>
