@@ -362,7 +362,7 @@ export default function DashboardPage() {
       const timer = setTimeout(() => {
         // Double-check we're still authenticated before loading
         if (isAuthenticated && !isLoggingOut) {
-          void loadCompanies();
+    void loadCompanies();
         }
       }, 500);
       return () => clearTimeout(timer);
@@ -552,4 +552,3 @@ export default function DashboardPage() {
     </ProtectedLayout>
   );
 }
-// Trigger deployment

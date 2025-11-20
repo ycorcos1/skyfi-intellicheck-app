@@ -40,12 +40,6 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
       redirectTimerRef.current = null;
     }
 
-    // Don't redirect if still loading - wait for auth to finish initializing
-    if (isLoading) {
-      hasRedirectedRef.current = false; // Reset on loading state
-      return;
-    }
-
     // If authenticated, reset redirect flag and clear any pending redirects
     if (isAuthenticated) {
       hasRedirectedRef.current = false;
