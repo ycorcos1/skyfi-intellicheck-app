@@ -16,8 +16,15 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   useEffect(() => {
     // Only redirect if we're not already on the login page to avoid loops
+    // Add a small delay to prevent rapid redirects
     if (!isLoading && !isAuthenticated && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      router.replace("/login");
+      const timer = setTimeout(() => {
+        // Double-check we're still not authenticated before redirecting
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          router.replace("/login");
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isLoading, router]);
 

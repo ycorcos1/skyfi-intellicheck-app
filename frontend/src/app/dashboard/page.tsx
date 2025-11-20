@@ -194,7 +194,7 @@ function parseRiskInput(value: string): number | undefined {
 }
 
 export default function DashboardPage() {
-  const { getAccessToken, logout } = useAuth();
+  const { getAccessToken, logout, isAuthenticated } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<CompanyStatus | "all">("all");
@@ -211,6 +211,7 @@ export default function DashboardPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -292,7 +293,7 @@ export default function DashboardPage() {
   }, []);
 
   const loadCompanies = useCallback(async () => {
-    if (riskRangeError) {
+    if (riskRangeError || !isAuthenticated || isLoggingOut) {
       return;
     }
 
@@ -336,8 +337,13 @@ export default function DashboardPage() {
       console.error("Failed to load companies", loadError);
       
       // If we get a 401, the token is invalid - log out and let ProtectedLayout redirect
-      if (loadError instanceof ApiError && loadError.statusCode === 401) {
-        await logout();
+      if (loadError instanceof ApiError && loadError.statusCode === 401 && !isLoggingOut) {
+        setIsLoggingOut(true);
+        try {
+          await logout();
+        } catch (logoutError) {
+          console.error("Failed to logout", logoutError);
+        }
         return;
       }
       
@@ -348,11 +354,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm, getAccessToken, logout, riskMax, riskMin, riskRangeError, selectedStatus]);
+  }, [currentPage, debouncedSearchTerm, getAccessToken, isAuthenticated, isLoggingOut, logout, riskMax, riskMin, riskRangeError, selectedStatus]);
 
   useEffect(() => {
-    void loadCompanies();
-  }, [loadCompanies, refreshToken]);
+    // Only load companies if authenticated and not logging out
+    if (isAuthenticated && !isLoggingOut) {
+      void loadCompanies();
+    }
+  }, [loadCompanies, refreshToken, isAuthenticated, isLoggingOut]);
 
   const handleDeleteCompany = useCallback(
     async (company: Company) => {
