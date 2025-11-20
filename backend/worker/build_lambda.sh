@@ -14,15 +14,13 @@ rm -rf "$BUILD_DIR"
 rm -f "${SCRIPT_DIR}/${PACKAGE_NAME}"
 mkdir -p "$BUILD_DIR"
 
-# Install dependencies (skip pydantic - we use stubs instead)
+# Install dependencies
 echo "Installing Python dependencies..."
-python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir --no-deps || {
-    echo "Warning: Some dependencies failed with --only-binary, trying without platform restriction..."
+# Try with platform restriction first, fallback to regular install
+python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir 2>&1 | grep -v "WARNING: Target platform" || {
+    echo "Warning: Platform-restricted install failed, trying without restriction..."
     python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --no-cache-dir
 }
-
-# Install pydantic-settings separately (if needed, but we use stubs)
-# python3 -m pip install pydantic-settings==2.1.0 -t "$BUILD_DIR" --no-cache-dir 2>/dev/null || true
 
 # Copy index.py to root (Lambda handler entry point)
 echo "Copying Lambda entry point..."
@@ -89,6 +87,20 @@ fi
 if [ -f "${SCRIPT_DIR}/../app/models/analysis.py" ]; then
     cp "${SCRIPT_DIR}/../app/models/analysis.py" "$BUILD_DIR/app/models/"
 fi
+
+if [ -f "${SCRIPT_DIR}/../app/models/document.py" ]; then
+    cp "${SCRIPT_DIR}/../app/models/document.py" "$BUILD_DIR/app/models/"
+fi
+
+# Copy all other model files that might be needed
+for model_file in "${SCRIPT_DIR}/../app/models"/*.py; do
+    if [ -f "$model_file" ]; then
+        filename=$(basename "$model_file")
+        if [ "$filename" != "__init__.py" ]; then
+            cp "$model_file" "$BUILD_DIR/app/models/" 2>/dev/null || true
+        fi
+    fi
+done
 
 # Create minimal stubs for app.core modules (worker doesn't use these, but models import them)
 # Create minimal config.py stub
