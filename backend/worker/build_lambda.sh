@@ -14,9 +14,15 @@ rm -rf "$BUILD_DIR"
 rm -f "${SCRIPT_DIR}/${PACKAGE_NAME}"
 mkdir -p "$BUILD_DIR"
 
-# Install dependencies
+# Install dependencies (skip pydantic - we use stubs instead)
 echo "Installing Python dependencies..."
-python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir
+python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --platform manylinux2014_x86_64 --only-binary=:all: --no-cache-dir --no-deps || {
+    echo "Warning: Some dependencies failed with --only-binary, trying without platform restriction..."
+    python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" -t "$BUILD_DIR" --no-cache-dir
+}
+
+# Install pydantic-settings separately (if needed, but we use stubs)
+# python3 -m pip install pydantic-settings==2.1.0 -t "$BUILD_DIR" --no-cache-dir 2>/dev/null || true
 
 # Copy index.py to root (Lambda handler entry point)
 echo "Copying Lambda entry point..."
@@ -84,19 +90,46 @@ if [ -f "${SCRIPT_DIR}/../app/models/analysis.py" ]; then
     cp "${SCRIPT_DIR}/../app/models/analysis.py" "$BUILD_DIR/app/models/"
 fi
 
-# Copy core modules (database, config)
-if [ -f "${SCRIPT_DIR}/../app/core/database.py" ]; then
-    cp "${SCRIPT_DIR}/../app/core/database.py" "$BUILD_DIR/app/core/"
-fi
+# Create minimal stubs for app.core modules (worker doesn't use these, but models import them)
+# Create minimal config.py stub
+cat > "$BUILD_DIR/app/core/config.py" << 'EOFCONFIG'
+"""Minimal config stub for Lambda worker - avoids pydantic-settings dependency."""
+from functools import lru_cache
+from typing import Optional
 
-if [ -f "${SCRIPT_DIR}/../app/core/config.py" ]; then
-    cp "${SCRIPT_DIR}/../app/core/config.py" "$BUILD_DIR/app/core/"
-fi
+class Settings:
+    """Stub Settings class - not used by worker."""
+    def __init__(self):
+        self.db_url: str = ""
+        self.api_version: str = "1.0.0"
+        self.environment: str = "development"
+        self.host: str = "0.0.0.0"
+        self.port: int = 8000
+        self.cognito_region: str = "us-east-1"
+        self.cognito_user_pool_id: Optional[str] = None
+        self.cognito_app_client_id: Optional[str] = None
+        self.cognito_issuer: Optional[str] = None
+        self.git_sha: Optional[str] = None
 
-# Copy backend/config.py (required by app.core.config)
-if [ -f "${SCRIPT_DIR}/../config.py" ]; then
-    cp "${SCRIPT_DIR}/../config.py" "$BUILD_DIR/"
-fi
+@lru_cache
+def get_settings() -> Settings:
+    """Return stub settings - worker uses WorkerConfig instead."""
+    return Settings()
+EOFCONFIG
+
+# Create minimal database.py stub (worker only needs Base, not the engine)
+cat > "$BUILD_DIR/app/core/database.py" << 'EOFDATABASE'
+"""Minimal database stub for Lambda worker - only provides Base for models."""
+from sqlalchemy.ext.declarative import declarative_base
+
+# Export Base for models to use
+Base = declarative_base()
+
+# Stub other exports that models might reference (not used by worker)
+def get_db():
+    """Stub - worker uses DatabaseManager instead."""
+    raise NotImplementedError("Worker uses DatabaseManager, not get_db")
+EOFDATABASE
 
 # Create deployment package
 echo "Creating deployment package..."
