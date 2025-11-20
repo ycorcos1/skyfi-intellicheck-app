@@ -42,56 +42,31 @@ function getAuthStatus(request: NextRequest): AuthStatus {
 }
 
 export function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-  // Allow static assets and public routes
+  // Allow static assets and public routes - let client-side handle auth
   if (isPublicPath(pathname)) {
-    const authStatus = getAuthStatus(request);
-
-    // Only redirect from login to dashboard if we have a valid token
-    // Add a check to prevent redirect loops by checking if we're already being redirected
-    if (pathname === "/login" && authStatus === "valid") {
-      // Check if there's a redirectTo parameter that points back to login (loop prevention)
-      const redirectTo = request.nextUrl.searchParams.get("redirectTo");
-      if (redirectTo && redirectTo.startsWith("/login")) {
-        // Break the loop by redirecting to dashboard without the redirectTo param
-        const redirectUrl = new URL("/dashboard", request.url);
-        redirectUrl.searchParams.delete("redirectTo");
-        return NextResponse.redirect(redirectUrl);
-      }
-      const redirectUrl = new URL("/dashboard", request.url);
-      return NextResponse.redirect(redirectUrl);
-    }
-
     return NextResponse.next();
   }
 
+  // For protected routes, only do a basic check
+  // Let the client-side ProtectedLayout handle the actual redirect logic
+  // This prevents server/client auth state mismatches
   const authStatus = getAuthStatus(request);
 
-  if (authStatus === "valid") {
-    return NextResponse.next();
-  }
-
-  // Prevent redirect loops: don't redirect if we're already going to login
-  if (pathname === "/login") {
-    return NextResponse.next();
-  }
-
-  const redirectUrl = new URL("/login", request.url);
-  const redirectTo = `${pathname}${search ?? ""}`;
-
-  // Only add redirectTo if it's not already login to prevent loops
-  if (redirectTo && redirectTo !== "/login" && !redirectTo.startsWith("/login")) {
-    redirectUrl.searchParams.set("redirectTo", redirectTo);
-  }
-
-  const response = NextResponse.redirect(redirectUrl);
-
+  // Only redirect if we have an expired/invalid token AND we're not already on login
+  // This is a safety check - the client will handle the actual auth flow
   if (authStatus === "expired" || authStatus === "invalid") {
-    response.cookies.delete(AUTH_COOKIE_NAME);
+    if (pathname !== "/login") {
+      const redirectUrl = new URL("/login", request.url);
+      const response = NextResponse.redirect(redirectUrl);
+      response.cookies.delete(AUTH_COOKIE_NAME);
+      return response;
+    }
   }
 
-  return response;
+  // For all other cases, let the client handle it
+  return NextResponse.next();
 }
 
 export const config = {

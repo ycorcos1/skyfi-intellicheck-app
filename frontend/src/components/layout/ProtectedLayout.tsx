@@ -13,16 +13,29 @@ export interface ProtectedLayoutProps {
 export function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent redirect loops by tracking if we've already redirected
-    if (hasRedirectedRef.current) {
+    // Clear any pending redirects
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+
+    // Don't redirect if still loading
+    if (isLoading) {
       return;
     }
 
-    // Only redirect if we're not already on the login page to avoid loops
-    if (!isLoading && !isAuthenticated && typeof window !== "undefined") {
+    // If authenticated, reset redirect flag
+    if (isAuthenticated) {
+      hasRedirectedRef.current = false;
+      return;
+    }
+
+    // Only redirect if not authenticated and not already redirected
+    if (!isAuthenticated && !hasRedirectedRef.current && typeof window !== "undefined") {
       const currentPath = window.location.pathname;
       
       // Don't redirect if already on login page
@@ -33,23 +46,22 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
       // Mark that we're redirecting to prevent loops
       hasRedirectedRef.current = true;
       
-      // Use a small delay to prevent rapid redirects
-      const timer = setTimeout(() => {
+      // Use a delay to prevent rapid redirects and allow auth state to stabilize
+      redirectTimerRef.current = setTimeout(() => {
         // Double-check we're still not authenticated and not on login page
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           router.replace("/login");
         }
-      }, 200);
-      
-      return () => {
-        clearTimeout(timer);
-      };
+        redirectTimerRef.current = null;
+      }, 300);
     }
 
-    // Reset redirect flag when authenticated
-    if (isAuthenticated) {
-      hasRedirectedRef.current = false;
-    }
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
