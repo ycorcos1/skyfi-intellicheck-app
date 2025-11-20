@@ -1,5 +1,6 @@
 "use client";
 
+// Dashboard page with company management and deletion functionality
 import ProtectedLayout from "@/components/layout/ProtectedLayout";
 import { CreateCompanyModal, FilterPanel, SummaryCards } from "@/components/dashboard";
 import type { CreateCompanyFormState } from "@/components/dashboard";
