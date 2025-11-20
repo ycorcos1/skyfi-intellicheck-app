@@ -5,6 +5,7 @@ export { SummaryCards } from "./SummaryCards";
 export type { SummaryCardsProps } from "./SummaryCards";
 
 export { CreateCompanyModal } from "./CreateCompanyModal";
+export { DeleteCompanyModal } from "./DeleteCompanyModal";
 export type { CreateCompanyModalProps, CreateCompanyFormState } from "./CreateCompanyModal";
 
 export { CompanyHeader } from "./CompanyHeader";

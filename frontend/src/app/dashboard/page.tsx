@@ -1,7 +1,12 @@
 "use client";
 
 import ProtectedLayout from "@/components/layout/ProtectedLayout";
-import { CreateCompanyModal, FilterPanel, SummaryCards } from "@/components/dashboard";
+import {
+  CreateCompanyModal,
+  DeleteCompanyModal,
+  FilterPanel,
+  SummaryCards,
+} from "@/components/dashboard";
 import type { CreateCompanyFormState } from "@/components/dashboard";
 import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortDirection } from "@/components/ui";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -211,6 +216,7 @@ export default function DashboardPage() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [deleteModalCompany, setDeleteModalCompany] = useState<Company | null>(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -369,30 +375,47 @@ export default function DashboardPage() {
     }
   }, [loadCompanies, refreshToken, isAuthenticated, isLoggingOut]);
 
-  const handleDeleteCompany = useCallback(
-    async (company: Company) => {
+  const handleDeleteClick = useCallback(
+    (company: Company) => {
+      setDeleteModalCompany(company);
+    },
+    [],
+  );
+
+  const handleDeleteConfirm = useCallback(
+    async () => {
+      if (!deleteModalCompany) {
+        return;
+      }
+
       try {
-        setDeletingId(company.id);
+        setDeletingId(deleteModalCompany.id);
         const token = await getAccessToken();
         
         if (!token) {
           throw new Error("Authentication required. Please sign in again.");
         }
 
-        await deleteCompany(company.id, token);
+        await deleteCompany(deleteModalCompany.id, token);
         
-        // Refresh the companies list
+        // Close modal and refresh the companies list
+        setDeleteModalCompany(null);
         await loadCompanies();
       } catch (err) {
         console.error("Failed to delete company", err);
         const message = err instanceof Error ? err.message : "Failed to delete company. Please try again.";
         setError(message);
+        // Keep modal open on error so user can try again
       } finally {
         setDeletingId(null);
       }
     },
-    [getAccessToken, loadCompanies],
+    [deleteModalCompany, getAccessToken, loadCompanies],
   );
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteModalCompany(null);
+  }, []);
 
   const tableColumnsWithActions: TableColumn<Company>[] = useMemo(
     () => [
@@ -404,17 +427,8 @@ export default function DashboardPage() {
         render: (_, row) => (
           <Button
             className={styles.dangerButton}
-            onClick={() => {
-              const confirmed = window.confirm(
-                `Permanently delete ${row.name}? This action cannot be undone. All associated data (analyses, documents, notes) will be permanently deleted.`
-              );
-              if (confirmed) {
-                void handleDeleteCompany(row);
-              }
-            }}
+            onClick={() => handleDeleteClick(row)}
             disabled={deletingId === row.id}
-            isLoading={deletingId === row.id}
-            loadingText="Deleting..."
             aria-label={`Delete ${row.name}`}
           >
             Delete
@@ -422,7 +436,7 @@ export default function DashboardPage() {
         ),
       },
     ],
-    [deletingId, handleDeleteCompany],
+    [deletingId, handleDeleteClick],
   );
 
   const handleCreateCompany = useCallback(
@@ -549,6 +563,13 @@ export default function DashboardPage() {
           error={createError}
         />
       ) : null}
+      <DeleteCompanyModal
+        isOpen={deleteModalCompany !== null}
+        company={deleteModalCompany}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        isLoading={deletingId !== null}
+      />
     </ProtectedLayout>
   );
 }
