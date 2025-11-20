@@ -478,7 +478,7 @@ export default function DashboardPage() {
 
         <section aria-label="Companies table" className={styles.tableSection}>
           {loading ? (
-            <LoadingSkeleton rows={8} columns={tableColumns.length} />
+            <LoadingSkeleton rows={8} columns={tableColumnsWithActions.length} />
           ) : error ? (
             <div className={styles.errorState}>
               <p>{error}</p>
@@ -493,7 +493,7 @@ export default function DashboardPage() {
           ) : (
             <>
               <Table
-                columns={tableColumns}
+                columns={tableColumnsWithActions}
                 data={sortedCompanies}
                 sortedColumn={sortedColumn}
                 sortDirection={sortDirection}
