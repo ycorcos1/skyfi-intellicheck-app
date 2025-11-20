@@ -53,7 +53,15 @@ export async function signIn(
   return new Promise((resolve, reject) => {
     user.authenticateUser(authenticationDetails, {
       onSuccess: (session) => resolve({ session, user }),
-      onFailure: (error) => reject(error),
+      onFailure: (error) => {
+        // Cognito errors can have different structures
+        // Ensure we preserve the error code and message
+        const cognitoError = error as { code?: string; message?: string; name?: string };
+        const enhancedError = new Error(cognitoError.message || "Authentication failed");
+        (enhancedError as { code?: string; name?: string }).code = cognitoError.code;
+        (enhancedError as { code?: string; name?: string }).name = cognitoError.name || error?.constructor?.name;
+        reject(enhancedError);
+      },
       newPasswordRequired: () =>
         reject(new Error("New password challenge is not supported in this flow.")),
     });

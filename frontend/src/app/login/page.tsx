@@ -26,9 +26,9 @@ function LoginForm() {
       const timer = setTimeout(() => {
         // Only redirect if we're still authenticated and not already on the target page
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/dashboard")) {
-      router.replace(redirectTo);
+          router.replace(redirectTo);
         }
-      }, 100);
+      }, 500); // Increased delay to ensure session is fully established
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isSubmitting, redirectTo, router]);
@@ -56,12 +56,34 @@ function LoginForm() {
         await login(email.trim(), password);
         router.replace(redirectTo);
       } catch (cause) {
-        if (cause && typeof cause === "object" && "message" in cause) {
-          const message = String((cause as { message?: string }).message);
-          setError(message || "Unable to sign in. Check your credentials and try again.");
-        } else {
-          setError("Unable to sign in. Check your credentials and try again.");
+        console.error("Login error:", cause);
+        
+        // Handle Cognito-specific errors
+        let errorMessage = "Unable to sign in. Check your credentials and try again.";
+        
+        if (cause && typeof cause === "object") {
+          const error = cause as { message?: string; code?: string; name?: string };
+          
+          // Extract error message
+          if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          // Handle specific Cognito error codes
+          if (error.code === "NotAuthorizedException") {
+            errorMessage = "Incorrect email or password. Please try again.";
+          } else if (error.code === "UserNotFoundException") {
+            errorMessage = "User not found. Please check your email address.";
+          } else if (error.code === "UserNotConfirmedException") {
+            errorMessage = "Your account is not confirmed. Please contact an administrator.";
+          } else if (error.code === "TooManyRequestsException") {
+            errorMessage = "Too many login attempts. Please try again later.";
+          } else if (error.name === "NetworkError" || error.message?.includes("Network")) {
+            errorMessage = "Network error. Please check your connection and try again.";
+          }
         }
+        
+        setError(errorMessage);
       } finally {
         setIsSubmitting(false);
       }

@@ -164,8 +164,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const { session } = await cognitoSignIn(email, password);
+        // Verify session exists and has tokens
+        if (!session || !session.getAccessToken() || !session.getIdToken()) {
+          throw new Error("Invalid session received from Cognito");
+        }
         applySession(session);
       } catch (error) {
+        console.error("Login failed:", error);
         clearPersistedSession();
         throw error;
       } finally {
