@@ -264,49 +264,82 @@ async def list_companies(
     Retrieve a paginated list of companies with optional filtering capabilities.
     """
     try:
+        logger.info("Listing companies", extra={"page": page, "limit": limit, "user_id": current_user.get("user_id")})
+        
         if risk_min is not None and risk_max is not None and risk_min > risk_max:
             raise HTTPException(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="risk_min cannot be greater than risk_max",
             )
 
-        query = db.query(Company)
+        # Build query step by step with error handling
+        try:
+            query = db.query(Company)
+            
+            if not include_deleted:
+                query = query.filter(Company.is_deleted == False)
 
-        if not include_deleted:
-            query = query.filter(Company.is_deleted == False)
+            if search:
+                query = query.filter(Company.name.ilike(f"%{search.strip()}%"))
 
-        if search:
-            query = query.filter(Company.name.ilike(f"%{search.strip()}%"))
+            if status:
+                query = query.filter(Company.status == status)
 
-        if status:
-            query = query.filter(Company.status == status)
+            if risk_min is not None:
+                query = query.filter(Company.risk_score >= risk_min)
+            if risk_max is not None:
+                query = query.filter(Company.risk_score <= risk_max)
 
-        if risk_min is not None:
-            query = query.filter(Company.risk_score >= risk_min)
-        if risk_max is not None:
-            query = query.filter(Company.risk_score <= risk_max)
+            # Get total count
+            total = query.count()
+            pages = (total + limit - 1) // limit if total else 0
 
-        total = query.count()
-        pages = (total + limit - 1) // limit if total else 0
+            # Get items
+            items = (
+                query.order_by(Company.created_at.desc())
+                .offset((page - 1) * limit)
+                .limit(limit)
+                .all()
+            )
+            
+            logger.debug(f"Found {len(items)} companies, total: {total}")
+            
+        except Exception as db_exc:
+            logger.error("Database query error: %s", str(db_exc), exc_info=True)
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database query failed",
+            ) from db_exc
 
-        items = (
-            query.order_by(Company.created_at.desc())
-            .offset((page - 1) * limit)
-            .limit(limit)
-            .all()
-        )
-
-        return CompanyListResponse(
-            items=[CompanyListItem.model_validate(item) for item in items],
-            total=total,
-            page=page,
-            limit=limit,
-            pages=max(pages, 1) if total else 0,
-        )
+        # Convert to response models with error handling
+        try:
+            company_items = []
+            for item in items:
+                try:
+                    company_items.append(CompanyListItem.model_validate(item))
+                except Exception as validation_exc:
+                    logger.error("Model validation error for company %s: %s", item.id, str(validation_exc))
+                    # Skip invalid items rather than failing entire request
+                    continue
+            
+            return CompanyListResponse(
+                items=company_items,
+                total=total,
+                page=page,
+                limit=limit,
+                pages=max(pages, 1) if total else 0,
+            )
+        except Exception as validation_exc:
+            logger.error("Response model validation error: %s", str(validation_exc), exc_info=True)
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to format response",
+            ) from validation_exc
+            
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Error listing companies: %s", str(exc), exc_info=True)
+        logger.error("Unexpected error listing companies: %s", str(exc), exc_info=True)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve companies. Please try again later.",
