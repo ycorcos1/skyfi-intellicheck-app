@@ -262,8 +262,7 @@ export default function DashboardPage() {
       align: "right",
       render: (_, row) => (
         <Button
-          variant="danger"
-          size="small"
+          className={styles.dangerButton}
           onClick={() => {
             const confirmed = window.confirm(
               `Permanently delete ${row.name}? This action cannot be undone. All associated data (analyses, documents, notes) will be permanently deleted.`
@@ -273,9 +272,11 @@ export default function DashboardPage() {
             }
           }}
           disabled={deletingId === row.id}
+          isLoading={deletingId === row.id}
+          loadingText="Deleting..."
           aria-label={`Delete ${row.name}`}
         >
-          {deletingId === row.id ? "Deleting..." : "Delete"}
+          Delete
         </Button>
       ),
     },
