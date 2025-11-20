@@ -49,15 +49,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For protected routes, only do a basic check
-  // Let the client-side ProtectedLayout handle the actual redirect logic
-  // This prevents server/client auth state mismatches
+  // For protected routes, be very conservative
+  // Only redirect on clearly expired/invalid tokens
+  // Let the client-side ProtectedLayout handle all auth redirects to prevent loops
   const authStatus = getAuthStatus(request);
 
   // Only redirect if we have an expired/invalid token AND we're not already on login
-  // This is a safety check - the client will handle the actual auth flow
+  // This is a minimal safety check - the client will handle the actual auth flow
   if (authStatus === "expired" || authStatus === "invalid") {
-    if (pathname !== "/login") {
+    if (pathname !== "/login" && !pathname.startsWith("/_next")) {
       const redirectUrl = new URL("/login", request.url);
       const response = NextResponse.redirect(redirectUrl);
       response.cookies.delete(AUTH_COOKIE_NAME);
@@ -65,7 +65,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // For all other cases, let the client handle it
+  // For all other cases (including "none" - no token), let the client handle it
+  // This prevents middleware from interfering with client-side auth initialization
   return NextResponse.next();
 }
 

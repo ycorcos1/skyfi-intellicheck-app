@@ -79,7 +79,7 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
         redirectTimerRef.current = null;
       }
     };
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, hasInitialized]);
 
   if (isLoading) {
     return (
