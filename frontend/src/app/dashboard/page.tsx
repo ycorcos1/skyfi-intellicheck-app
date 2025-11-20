@@ -532,6 +532,13 @@ export default function DashboardPage() {
                 sortedColumn={sortedColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
+                onRowClick={(row) => {
+                  // Navigate to company detail page when row is clicked
+                  // Stop propagation to prevent triggering when clicking the Delete button
+                  if (row.id && typeof row.id === "string") {
+                    router.push(`/dashboard/companies/${row.id}`);
+                  }
+                }}
                 emptyState={
                   <div className={styles.emptyState}>
                     <p>No companies found.</p>

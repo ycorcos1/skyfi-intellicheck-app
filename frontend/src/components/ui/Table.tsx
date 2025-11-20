@@ -151,7 +151,6 @@ export function Table<Row extends Record<string, unknown>>({
               <tr
                 key={resolveRowKey(row, rowIndex)}
                 className={composeClassNames(styles.row, onRowClick ? styles.clickableRow : undefined)}
-                onClick={onRowClick ? () => onRowClick(row, rowIndex) : undefined}
                 role={onRowClick ? "button" : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
                 onKeyDown={
@@ -171,6 +170,8 @@ export function Table<Row extends Record<string, unknown>>({
                   const cellContent = renderCellContent(column, row, rowIndex);
                   const isStringContent = typeof cellContent === "string";
                   const shouldTruncate = column.truncate && isStringContent;
+                  // Prevent row click when clicking on action buttons
+                  const isActionColumn = columnKey === "actions";
 
                   return (
                     <td
@@ -184,6 +185,14 @@ export function Table<Row extends Record<string, unknown>>({
                         maxWidth: shouldTruncate ? `${column.truncate}ch` : column.width,
                       }}
                       title={shouldTruncate ? (cellContent as string) : undefined}
+                      onClick={
+                        onRowClick && !isActionColumn
+                          ? (e) => {
+                              e.stopPropagation();
+                              onRowClick(row, rowIndex);
+                            }
+                          : undefined
+                      }
                     >
                       {cellContent}
                     </td>
