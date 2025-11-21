@@ -16,7 +16,7 @@ import { ApiError } from "@/lib/api";
 import { fetchCompanies, createCompany, deleteCompany, autoApproveIfEligible, bulkUploadCompanies } from "@/lib/companies-api";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./dashboard.module.css";
 
@@ -228,7 +228,7 @@ export default function DashboardPage() {
     error_count: number;
     errors: Array<{ index: number; error: string }>;
   } | null>(null);
-  const [isAutoApproving, setIsAutoApproving] = useState(false);
+  const isAutoApprovingRef = useRef(false);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -354,7 +354,7 @@ export default function DashboardPage() {
       // Auto-approve eligible companies (analysis=COMPLETED, risk_score<=30, status=PENDING)
       // This handles companies that were analyzed before the auto-approve logic was added
       // Only run if we're not already auto-approving to prevent infinite loops
-      if (!isAutoApproving) {
+      if (!isAutoApprovingRef.current) {
         const eligibleCompanies = response.items.filter(
           (company) =>
             company.analysis_status === "completed" &&
@@ -363,7 +363,7 @@ export default function DashboardPage() {
         );
         
         if (eligibleCompanies.length > 0) {
-          setIsAutoApproving(true);
+          isAutoApprovingRef.current = true;
           // Auto-approve eligible companies in the background (don't block UI)
           // Use refreshToken instead of calling loadCompanies directly to avoid infinite loops
           Promise.all(
@@ -379,11 +379,11 @@ export default function DashboardPage() {
           ).then(() => {
             // Refresh the list after auto-approvals complete using refreshToken
             // This prevents infinite loops by using the existing refresh mechanism
-            setIsAutoApproving(false);
+            isAutoApprovingRef.current = false;
             setRefreshToken((value) => value + 1);
           }).catch((err) => {
             console.error("Error during auto-approval batch:", err);
-            setIsAutoApproving(false);
+            isAutoApprovingRef.current = false;
           });
         }
       }
@@ -408,7 +408,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm, getAccessToken, isAuthenticated, isLoggingOut, logout, riskMax, riskMin, riskRangeError, selectedStatus, isAutoApproving]);
+  }, [currentPage, debouncedSearchTerm, getAccessToken, isAuthenticated, isLoggingOut, logout, riskMax, riskMin, riskRangeError, selectedStatus]);
 
   useEffect(() => {
     // Only load companies if authenticated and not logging out
