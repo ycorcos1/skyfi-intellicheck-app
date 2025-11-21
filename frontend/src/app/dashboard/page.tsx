@@ -6,13 +6,14 @@ import {
   DeleteCompanyModal,
   FilterPanel,
   SummaryCards,
+  BulkUploadModal,
 } from "@/components/dashboard";
 import type { CreateCompanyFormState } from "@/components/dashboard";
 import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortDirection } from "@/components/ui";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
-import { fetchCompanies, createCompany, deleteCompany, autoApproveIfEligible } from "@/lib/companies-api";
+import { fetchCompanies, createCompany, deleteCompany, autoApproveIfEligible, bulkUploadCompanies } from "@/lib/companies-api";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -219,6 +220,14 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [deleteModalCompany, setDeleteModalCompany] = useState<Company | null>(null);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [bulkUploadLoading, setBulkUploadLoading] = useState(false);
+  const [bulkUploadError, setBulkUploadError] = useState<string | null>(null);
+  const [bulkUploadResult, setBulkUploadResult] = useState<{
+    success_count: number;
+    error_count: number;
+    errors: Array<{ index: number; error: string }>;
+  } | null>(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -509,6 +518,37 @@ export default function DashboardPage() {
     [getAccessToken],
   );
 
+  const handleBulkUpload = useCallback(
+    async (file: File) => {
+      setBulkUploadLoading(true);
+      setBulkUploadError(null);
+      setBulkUploadResult(null);
+
+      try {
+        const token = await getAccessToken();
+
+        if (!token) {
+          setBulkUploadError("Authentication required. Please sign in again.");
+          return;
+        }
+
+        const result = await bulkUploadCompanies(file, token);
+        setBulkUploadResult(result);
+        
+        // Refresh companies list
+        setCurrentPage(1);
+        setRefreshToken((value) => value + 1);
+      } catch (uploadErr) {
+        console.error("Failed to upload companies", uploadErr);
+        const message = uploadErr instanceof Error ? uploadErr.message : "Failed to upload companies.";
+        setBulkUploadError(message);
+      } finally {
+        setBulkUploadLoading(false);
+      }
+    },
+    [getAccessToken],
+  );
+
   return (
     <ProtectedLayout>
       <div className={styles.page}>
@@ -517,7 +557,12 @@ export default function DashboardPage() {
             <h1 className={styles.title}>Companies</h1>
             <p className={styles.subtitle}>Monitor verification activity, review signals, and manage high-risk profiles.</p>
           </div>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <Button variant="secondary" onClick={() => setIsBulkUploadModalOpen(true)}>
+              Bulk Upload JSON
+            </Button>
           <Button onClick={() => setIsCreateModalOpen(true)}>Create Company</Button>
+          </div>
         </header>
 
         <FilterPanel
@@ -608,6 +653,20 @@ export default function DashboardPage() {
         onConfirm={handleDeleteConfirm}
         isLoading={deletingId !== null}
       />
+      {isBulkUploadModalOpen && (
+        <BulkUploadModal
+          isOpen={isBulkUploadModalOpen}
+          onClose={() => {
+            setIsBulkUploadModalOpen(false);
+            setBulkUploadError(null);
+            setBulkUploadResult(null);
+          }}
+          onUpload={handleBulkUpload}
+          loading={bulkUploadLoading}
+          error={bulkUploadError}
+          result={bulkUploadResult}
+        />
+      )}
     </ProtectedLayout>
   );
 }

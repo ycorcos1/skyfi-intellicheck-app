@@ -1108,3 +1108,194 @@ async def export_company_pdf(
     )
 
 
+@router.post(
+    "/bulk-upload",
+    response_model=Dict[str, Any],
+    status_code=http_status.HTTP_201_CREATED,
+    summary="Bulk upload companies from JSON (for testing/demo)",
+)
+async def bulk_upload_companies(
+    companies_data: List[Dict[str, Any]],
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Bulk create companies from JSON data. Useful for testing and demos.
+    
+    Expected JSON format:
+    [
+        {
+            "company": {
+                "name": "Company Name",
+                "domain": "example.com",
+                "website_url": "https://example.com",
+                "email": "contact@example.com",
+                "phone": "+1234567890",
+                "status": "approved",  # optional
+                "risk_score": 25,  # optional
+                "analysis_status": "completed",  # optional
+                "last_analyzed_at": "2024-01-15T12:00:00Z"  # optional
+            },
+            "analysis": {  # optional
+                "submitted_data": {...},
+                "discovered_data": {...},
+                "signals": [...],
+                "risk_score": 25,
+                "llm_summary": "...",
+                "llm_details": "...",
+                "is_complete": true,
+                "failed_checks": []
+            }
+        }
+    ]
+    """
+    correlation_id = get_correlation_id() or "unknown"
+    created_companies = []
+    errors = []
+    
+    for idx, item in enumerate(companies_data):
+        try:
+            company_data = item.get("company", {})
+            analysis_data = item.get("analysis")
+            
+            # Validate required fields
+            if not company_data.get("name") or not company_data.get("domain"):
+                errors.append({
+                    "index": idx,
+                    "error": "Missing required fields: name and domain are required"
+                })
+                continue
+            
+            # Normalize inputs
+            name = company_data["name"].strip()
+            domain = company_data["domain"].strip().lower()
+            website_url = company_data.get("website_url", "").strip() if company_data.get("website_url") else None
+            
+            # Parse status with validation
+            status_str = company_data.get("status", "pending")
+            try:
+                status = CompanyStatus(status_str)
+            except ValueError:
+                status = CompanyStatus.PENDING
+            
+            # Parse analysis_status with validation
+            analysis_status_str = company_data.get("analysis_status", "pending")
+            try:
+                analysis_status = AnalysisStatus(analysis_status_str)
+            except ValueError:
+                analysis_status = AnalysisStatus.PENDING
+            
+            # Create company
+            company = Company(
+                name=name,
+                domain=domain,
+                website_url=website_url,
+                email=company_data.get("email"),
+                phone=company_data.get("phone"),
+                status=status,
+                risk_score=company_data.get("risk_score", 0),
+                analysis_status=analysis_status,
+                current_step=company_data.get("current_step"),
+            )
+            
+            # Set last_analyzed_at if provided
+            if company_data.get("last_analyzed_at"):
+                try:
+                    # Try parsing ISO format datetime
+                    last_analyzed_str = company_data["last_analyzed_at"]
+                    if isinstance(last_analyzed_str, str):
+                        # Handle ISO format with or without timezone
+                        if last_analyzed_str.endswith("Z"):
+                            last_analyzed_str = last_analyzed_str[:-1] + "+00:00"
+                        elif "Z" in last_analyzed_str:
+                            # Handle Z anywhere in the string
+                            last_analyzed_str = last_analyzed_str.replace("Z", "+00:00")
+                        company.last_analyzed_at = datetime.fromisoformat(last_analyzed_str)
+                except (ValueError, AttributeError):
+                    # If parsing fails, just skip it
+                    pass
+            
+            db.add(company)
+            db.flush()  # Get the company ID
+            
+            # Create analysis if provided
+            if analysis_data:
+                # Get the next version number
+                existing_analyses = db.query(CompanyAnalysis).filter(
+                    CompanyAnalysis.company_id == company.id
+                ).order_by(CompanyAnalysis.version.desc()).first()
+                next_version = (existing_analyses.version + 1) if existing_analyses else 1
+                
+                analysis = CompanyAnalysis(
+                    company_id=company.id,
+                    version=next_version,
+                    algorithm_version=analysis_data.get("algorithm_version", "1.0.0"),
+                    submitted_data=analysis_data.get("submitted_data", {}),
+                    discovered_data=analysis_data.get("discovered_data", {}),
+                    signals=analysis_data.get("signals", []),
+                    risk_score=analysis_data.get("risk_score", company.risk_score),
+                    llm_summary=analysis_data.get("llm_summary"),
+                    llm_details=analysis_data.get("llm_details"),
+                    is_complete=analysis_data.get("is_complete", True),
+                    failed_checks=analysis_data.get("failed_checks", []),
+                )
+                
+                # Update company risk score from analysis if provided
+                if analysis_data.get("risk_score") is not None:
+                    company.risk_score = analysis_data["risk_score"]
+                
+                db.add(analysis)
+            
+            db.commit()
+            db.refresh(company)
+            
+            created_companies.append({
+                "id": str(company.id),
+                "name": company.name,
+                "domain": company.domain,
+            })
+            
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            db.rollback()
+            errors.append({
+                "index": idx,
+                "error": str(exc)
+            })
+            logger.error(
+                "Failed to create company in bulk upload",
+                extra={
+                    "index": idx,
+                    "error": str(exc),
+                    "correlation_id": correlation_id,
+                },
+                exc_info=True
+            )
+    
+    logger.info(
+        "Bulk upload completed",
+        extra={
+            "created_count": len(created_companies),
+            "error_count": len(errors),
+            "user_id": current_user.get("user_id"),
+            "correlation_id": correlation_id,
+        }
+    )
+    
+    # Record metric for bulk upload
+    metrics = get_metrics_client()
+    metrics.put_metric(
+        "BulkUploadCompleted",
+        len(created_companies),
+        "Count",
+        dimensions={"TotalProcessed": str(len(companies_data))}
+    )
+    
+    return {
+        "created": created_companies,
+        "errors": errors,
+        "total_processed": len(companies_data),
+        "success_count": len(created_companies),
+        "error_count": len(errors),
+    }
+
+

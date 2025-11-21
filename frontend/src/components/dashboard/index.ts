@@ -27,3 +27,6 @@ export { NotesTab } from "./NotesTab";
 export { SignalsTable } from "./SignalsTable";
 export type { SignalsTableProps } from "./SignalsTable";
 
+export { BulkUploadModal } from "./BulkUploadModal";
+export type { BulkUploadModalProps } from "./BulkUploadModal";
+

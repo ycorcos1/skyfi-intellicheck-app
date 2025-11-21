@@ -211,3 +211,23 @@ export async function deleteCompany(id: string, token: string | null) {
   });
 }
 
+export interface BulkUploadResponse {
+  created: Array<{ id: string; name: string; domain: string }>;
+  errors: Array<{ index: number; error: string }>;
+  total_processed: number;
+  success_count: number;
+  error_count: number;
+}
+
+export async function bulkUploadCompanies(file: File, token: string | null): Promise<BulkUploadResponse> {
+  // Read file as JSON and send as JSON body
+  const fileText = await file.text();
+  const jsonData = JSON.parse(fileText);
+  
+  return apiRequest<BulkUploadResponse>("/v1/companies/bulk-upload", {
+    method: "POST",
+    body: JSON.stringify(jsonData),
+    token,
+  });
+}
+
