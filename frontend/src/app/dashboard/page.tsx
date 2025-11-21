@@ -309,6 +309,9 @@ export default function DashboardPage() {
     setCurrentPage(1);
   }, []);
 
+  // Use a ref to store the latest loadCompanies function to avoid dependency issues
+  const loadCompaniesRef = useRef<() => Promise<void>>();
+  
   const loadCompanies = useCallback(async () => {
     if (riskRangeError || !isAuthenticated || isLoggingOut) {
       return;
@@ -410,19 +413,24 @@ export default function DashboardPage() {
     }
   }, [currentPage, debouncedSearchTerm, getAccessToken, isAuthenticated, isLoggingOut, logout, riskMax, riskMin, riskRangeError, selectedStatus]);
 
+  // Update the ref whenever loadCompanies changes
+  useEffect(() => {
+    loadCompaniesRef.current = loadCompanies;
+  }, [loadCompanies]);
+
   useEffect(() => {
     // Only load companies if authenticated and not logging out
     // Add a delay to ensure auth state is stable and prevent race conditions
     if (isAuthenticated && !isLoggingOut) {
       const timer = setTimeout(() => {
         // Double-check we're still authenticated before loading
-        if (isAuthenticated && !isLoggingOut) {
-    void loadCompanies();
+        if (isAuthenticated && !isLoggingOut && loadCompaniesRef.current) {
+          void loadCompaniesRef.current();
         }
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [loadCompanies, refreshToken, isAuthenticated, isLoggingOut]);
+  }, [refreshToken, isAuthenticated, isLoggingOut]);
 
   const handleDeleteClick = useCallback(
     (company: Company) => {
