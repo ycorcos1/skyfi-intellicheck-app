@@ -13,7 +13,7 @@ import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortD
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
-import { fetchCompanies, createCompany, deleteCompany, autoApproveIfEligible, bulkUploadCompanies } from "@/lib/companies-api";
+import { fetchCompanies, createCompany, deleteCompany, bulkUploadCompanies } from "@/lib/companies-api";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -228,7 +228,6 @@ export default function DashboardPage() {
     error_count: number;
     errors: Array<{ index: number; error: string }>;
   } | null>(null);
-  const isAutoApprovingRef = useRef(false);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -354,42 +353,9 @@ export default function DashboardPage() {
       setCompanies(response.items);
       setTotalPages(response.pages ?? 0);
       
-      // Auto-approve eligible companies (analysis=COMPLETED, risk_score<=30, status=PENDING)
-      // This handles companies that were analyzed before the auto-approve logic was added
-      // Only run if we're not already auto-approving to prevent infinite loops
-      if (!isAutoApprovingRef.current) {
-        const eligibleCompanies = response.items.filter(
-          (company) =>
-            company.analysis_status === "completed" &&
-            company.risk_score <= 30 &&
-            company.status === "pending"
-        );
-        
-        if (eligibleCompanies.length > 0) {
-          isAutoApprovingRef.current = true;
-          // Auto-approve eligible companies in the background (don't block UI)
-          // Use refreshToken instead of calling loadCompanies directly to avoid infinite loops
-          Promise.all(
-            eligibleCompanies.map(async (company) => {
-              try {
-                await autoApproveIfEligible(company.id, token);
-                console.log(`Auto-approved company: ${company.name} (risk_score: ${company.risk_score})`);
-              } catch (err) {
-                // Silently fail - company might have been updated by another process
-                console.warn(`Failed to auto-approve company ${company.name}:`, err);
-              }
-            })
-          ).then(() => {
-            // Refresh the list after auto-approvals complete using refreshToken
-            // This prevents infinite loops by using the existing refresh mechanism
-            isAutoApprovingRef.current = false;
-            setRefreshToken((value) => value + 1);
-          }).catch((err) => {
-            console.error("Error during auto-approval batch:", err);
-            isAutoApprovingRef.current = false;
-          });
-        }
-      }
+      // DISABLED: Auto-approve logic was causing infinite reload loops
+      // The auto-approval should be handled server-side or on-demand by the user
+      // If needed in the future, implement with proper debouncing and session tracking
     } catch (loadError) {
       console.error("Failed to load companies", loadError);
       
