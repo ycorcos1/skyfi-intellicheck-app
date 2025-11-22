@@ -214,6 +214,7 @@ export default function DashboardPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isLoadingRef = useRef(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -316,6 +317,12 @@ export default function DashboardPage() {
       return;
     }
 
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) {
+      return;
+    }
+
+    isLoadingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -376,6 +383,7 @@ export default function DashboardPage() {
       setTotalPages(0);
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   }, [currentPage, debouncedSearchTerm, getAccessToken, isAuthenticated, isLoggingOut, logout, riskMax, riskMin, riskRangeError, selectedStatus]);
 
@@ -387,10 +395,10 @@ export default function DashboardPage() {
   useEffect(() => {
     // Only load companies if authenticated and not logging out
     // Add a delay to ensure auth state is stable and prevent race conditions
-    if (isAuthenticated && !isLoggingOut) {
+    if (isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
       const timer = setTimeout(() => {
         // Double-check we're still authenticated before loading
-        if (isAuthenticated && !isLoggingOut && loadCompaniesRef.current) {
+        if (isAuthenticated && !isLoggingOut && loadCompaniesRef.current && !isLoadingRef.current) {
           void loadCompaniesRef.current();
         }
       }, 500);
