@@ -441,14 +441,27 @@ export function CompanyDetailModal({
         disabled: actionLoading !== null,
         onClick: handleRerun,
       });
-    } else if (latest_analysis?.failed_checks && latest_analysis.failed_checks.length > 0) {
+    } else {
+      // Show "Rerun Analysis" when analysis is completed or has failed checks
+      if (latest_analysis?.failed_checks && latest_analysis.failed_checks.length > 0) {
+        items.push({
+          key: "retryFailed",
+          label: "Retry Failed Checks",
+          loadingLabel: "Retrying...",
+          variant: "primary",
+          disabled: actionLoading !== null,
+          onClick: handleRetryFailed,
+        });
+      }
+      
+      // Always show "Rerun Analysis" when analysis is not in progress
       items.push({
-        key: "retryFailed",
-        label: "Retry Failed Checks",
-        loadingLabel: "Retrying...",
+        key: "rerun",
+        label: "Rerun Analysis",
+        loadingLabel: "Starting...",
         variant: "primary",
         disabled: actionLoading !== null,
-        onClick: handleRetryFailed,
+        onClick: handleRerun,
       });
     }
 
