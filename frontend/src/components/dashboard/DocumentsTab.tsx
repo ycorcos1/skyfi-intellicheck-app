@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -14,6 +13,10 @@ import {
 import type { Document } from "@/types/document";
 import { UploadDocumentModal } from "./UploadDocumentModal";
 import styles from "./DocumentsTab.module.css";
+
+export interface DocumentsTabProps {
+  companyId?: string;
+}
 
 type FeedbackState = {
   type: "success" | "error";
@@ -133,13 +136,22 @@ function DocumentCard({ document: documentItem, onDownload, onDelete, isDownload
   );
 }
 
-export function DocumentsTab() {
-  const params = useParams<{ id: string }>();
-  const companyIdParam = params?.id;
-  const companyId = useMemo(
-    () => (Array.isArray(companyIdParam) ? companyIdParam[0] : companyIdParam),
-    [companyIdParam],
-  );
+export function DocumentsTab({ companyId }: DocumentsTabProps = {}) {
+  // Fallback to useParams for backward compatibility with page route
+  const [fallbackCompanyId, setFallbackCompanyId] = useState<string | undefined>(undefined);
+  
+  useEffect(() => {
+    if (!companyId && typeof window !== "undefined") {
+      // Try to get from URL params as fallback
+      const pathParts = window.location.pathname.split("/");
+      const idIndex = pathParts.indexOf("companies");
+      if (idIndex !== -1 && pathParts[idIndex + 1]) {
+        setFallbackCompanyId(pathParts[idIndex + 1]);
+      }
+    }
+  }, [companyId]);
+  
+  const effectiveCompanyId = companyId ?? fallbackCompanyId;
 
   const { getAccessToken } = useAuth();
 
@@ -152,7 +164,7 @@ export function DocumentsTab() {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
   const loadDocuments = useCallback(async () => {
-    if (!companyId) {
+    if (!effectiveCompanyId) {
       setError("Company not found.");
       setDocuments([]);
       setIsLoading(false);
@@ -171,7 +183,7 @@ export function DocumentsTab() {
         return;
       }
 
-      const response = await listDocuments(companyId, token);
+      const response = await listDocuments(effectiveCompanyId, token);
       setDocuments(response.items);
     } catch (err) {
       console.error("Failed to load documents", err);
@@ -180,7 +192,7 @@ export function DocumentsTab() {
     } finally {
       setIsLoading(false);
     }
-  }, [companyId, getAccessToken]);
+  }, [effectiveCompanyId, getAccessToken]);
 
   useEffect(() => {
     void loadDocuments();
@@ -203,7 +215,7 @@ export function DocumentsTab() {
   const handleDownload = useCallback(
     async (documentItem: Document) => {
       try {
-        if (!companyId) {
+        if (!effectiveCompanyId) {
           throw new Error("Company not found.");
         }
 
@@ -215,7 +227,7 @@ export function DocumentsTab() {
           throw new Error("Authentication required. Please sign in again.");
         }
 
-        const response = await generateDocumentDownloadUrl(companyId, documentItem.id, token);
+        const response = await generateDocumentDownloadUrl(effectiveCompanyId, documentItem.id, token);
 
         const link = window.document.createElement("a");
         link.href = response.download_url;
@@ -239,7 +251,7 @@ export function DocumentsTab() {
         setDownloadingId(null);
       }
     },
-    [companyId, getAccessToken],
+    [effectiveCompanyId, getAccessToken],
   );
 
   const handleDelete = useCallback(
@@ -253,7 +265,7 @@ export function DocumentsTab() {
       }
 
       try {
-        if (!companyId) {
+        if (!effectiveCompanyId) {
           throw new Error("Company not found.");
         }
 
@@ -265,7 +277,7 @@ export function DocumentsTab() {
           throw new Error("Authentication required. Please sign in again.");
         }
 
-        await deleteDocument(companyId, documentItem.id, token);
+        await deleteDocument(effectiveCompanyId, documentItem.id, token);
         await loadDocuments();
 
         setFeedback({
@@ -282,7 +294,7 @@ export function DocumentsTab() {
         setDeletingId(null);
       }
     },
-    [companyId, getAccessToken, loadDocuments],
+    [effectiveCompanyId, getAccessToken, loadDocuments],
   );
 
   const handleUploadSuccess = useCallback(() => {
@@ -385,7 +397,7 @@ export function DocumentsTab() {
       ) : null}
 
       <UploadDocumentModal
-        companyId={companyId ?? ""}
+        companyId={effectiveCompanyId ?? ""}
         isOpen={isUploadModalOpen}
         onClose={() => {
           setIsUploadModalOpen(false);

@@ -21,12 +21,17 @@ export { AnalysisHistoryTab } from "./AnalysisHistoryTab";
 export type { AnalysisHistoryTabProps } from "./AnalysisHistoryTab";
 
 export { DocumentsTab } from "./DocumentsTab";
+export type { DocumentsTabProps } from "./DocumentsTab";
 
 export { NotesTab } from "./NotesTab";
+export type { NotesTabProps } from "./NotesTab";
 
 export { SignalsTable } from "./SignalsTable";
 export type { SignalsTableProps } from "./SignalsTable";
 
 export { BulkUploadModal } from "./BulkUploadModal";
 export type { BulkUploadModalProps } from "./BulkUploadModal";
+
+export { CompanyDetailModal } from "./CompanyDetailModal";
+export type { CompanyDetailModalProps } from "./CompanyDetailModal";
 

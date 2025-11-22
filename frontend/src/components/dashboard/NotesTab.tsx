@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -11,6 +10,10 @@ import type { Note } from "@/types/note";
 import { NoteCard } from "./NoteCard";
 import styles from "./NotesTab.module.css";
 
+export interface NotesTabProps {
+  companyId?: string;
+}
+
 const MAX_NOTE_LENGTH = 5000;
 
 type FeedbackState = {
@@ -18,13 +21,22 @@ type FeedbackState = {
   message: string;
 };
 
-export function NotesTab() {
-  const params = useParams<{ id: string }>();
-  const companyIdParam = params?.id;
-  const companyId = useMemo(
-    () => (Array.isArray(companyIdParam) ? companyIdParam[0] : companyIdParam),
-    [companyIdParam],
-  );
+export function NotesTab({ companyId }: NotesTabProps = {}) {
+  // Fallback to useParams for backward compatibility with page route
+  const [fallbackCompanyId, setFallbackCompanyId] = useState<string | undefined>(undefined);
+  
+  useEffect(() => {
+    if (!companyId && typeof window !== "undefined") {
+      // Try to get from URL params as fallback
+      const pathParts = window.location.pathname.split("/");
+      const idIndex = pathParts.indexOf("companies");
+      if (idIndex !== -1 && pathParts[idIndex + 1]) {
+        setFallbackCompanyId(pathParts[idIndex + 1]);
+      }
+    }
+  }, [companyId]);
+  
+  const effectiveCompanyId = companyId ?? fallbackCompanyId;
 
   const { getAccessToken, user } = useAuth();
 
@@ -40,7 +52,7 @@ export function NotesTab() {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
   const loadNotes = useCallback(async () => {
-    if (!companyId) {
+    if (!effectiveCompanyId) {
       setError("Company not found.");
       setNotes([]);
       setIsLoading(false);
@@ -59,7 +71,7 @@ export function NotesTab() {
         return;
       }
 
-      const response = await listNotes(companyId, token);
+      const response = await listNotes(effectiveCompanyId, token);
       setNotes(response.items);
     } catch (err) {
       console.error("Failed to load notes", err);
@@ -68,7 +80,7 @@ export function NotesTab() {
     } finally {
       setIsLoading(false);
     }
-  }, [companyId, getAccessToken]);
+  }, [effectiveCompanyId, getAccessToken]);
 
   useEffect(() => {
     void loadNotes();
@@ -91,7 +103,7 @@ export function NotesTab() {
   const handleCreateNote = useCallback(async () => {
     const trimmed = newNoteContent.trim();
 
-    if (!companyId) {
+    if (!effectiveCompanyId) {
       setFormError("Company not found. Please refresh and try again.");
       return;
     }
@@ -117,7 +129,7 @@ export function NotesTab() {
       }
 
       const created = await createNote(
-        companyId,
+        effectiveCompanyId,
         {
           content: trimmed,
         },
@@ -137,11 +149,11 @@ export function NotesTab() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [companyId, getAccessToken, newNoteContent]);
+  }, [effectiveCompanyId, getAccessToken, newNoteContent]);
 
   const handleUpdateNote = useCallback(
     async (noteId: string, content: string) => {
-      if (!companyId) {
+      if (!effectiveCompanyId) {
         throw new Error("Company not found.");
       }
 
@@ -152,7 +164,7 @@ export function NotesTab() {
       }
 
       const updated = await updateNote(
-        companyId,
+        effectiveCompanyId,
         noteId,
         {
           content,
@@ -166,12 +178,12 @@ export function NotesTab() {
         message: "Note updated successfully.",
       });
     },
-    [companyId, getAccessToken],
+    [effectiveCompanyId, getAccessToken],
   );
 
   const handleDeleteNote = useCallback(
     async (noteId: string) => {
-      if (!companyId) {
+      if (!effectiveCompanyId) {
         throw new Error("Company not found.");
       }
 
@@ -181,14 +193,14 @@ export function NotesTab() {
         throw new Error("Authentication required.");
       }
 
-      await deleteNote(companyId, noteId, token);
+      await deleteNote(effectiveCompanyId, noteId, token);
       setNotes((previous) => previous.filter((note) => note.id !== noteId));
       setFeedback({
         type: "success",
         message: "Note deleted.",
       });
     },
-    [companyId, getAccessToken],
+    [effectiveCompanyId, getAccessToken],
   );
 
   const currentUserId = user?.id ?? user?.email;

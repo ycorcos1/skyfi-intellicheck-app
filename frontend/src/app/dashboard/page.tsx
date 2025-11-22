@@ -7,6 +7,7 @@ import {
   FilterPanel,
   SummaryCards,
   BulkUploadModal,
+  CompanyDetailModal,
 } from "@/components/dashboard";
 import type { CreateCompanyFormState } from "@/components/dashboard";
 import { Badge, BadgeVariant, Button, Table, TableColumn, TablePagination, SortDirection } from "@/components/ui";
@@ -17,7 +18,6 @@ import { fetchCompanies, createCompany, deleteCompany, bulkUploadCompanies } fro
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Company, CompanyStatus, AnalysisStatus } from "@/types/company";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import styles from "./dashboard.module.css";
 
 const STATUS_LABELS: Record<CompanyStatus, string> = {
@@ -201,8 +201,8 @@ function parseRiskInput(value: string): number | undefined {
 
 export default function DashboardPage() {
   const { getAccessToken, logout, isAuthenticated } = useAuth();
-  const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<CompanyStatus | "all">("all");
   const [riskMin, setRiskMin] = useState("0");
@@ -601,10 +601,10 @@ export default function DashboardPage() {
                 sortDirection={sortDirection}
                 onSort={handleSort}
                 onRowClick={(row) => {
-                  // Navigate to company detail page when row is clicked
+                  // Open company detail modal when row is clicked
                   // Stop propagation to prevent triggering when clicking the Delete button
                   if (row.id && typeof row.id === "string") {
-                    router.push(`/dashboard/companies/${row.id}`);
+                    setSelectedCompanyId(row.id);
                   }
                 }}
                 emptyState={
@@ -660,6 +660,15 @@ export default function DashboardPage() {
           result={bulkUploadResult}
         />
       )}
+      <CompanyDetailModal
+        isOpen={selectedCompanyId !== null}
+        companyId={selectedCompanyId}
+        onClose={() => setSelectedCompanyId(null)}
+        onCompanyUpdated={() => {
+          // Refresh the companies list when company is updated in the modal
+          void loadCompanies();
+        }}
+      />
     </ProtectedLayout>
   );
 }
