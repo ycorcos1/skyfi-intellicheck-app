@@ -618,7 +618,7 @@ export function CompanyDetailModal({
                   ) : activeTab === "notes" ? (
                     <NotesTab companyId={companyId ?? undefined} />
                   ) : activeTab === "history" ? (
-                    <AnalysisHistoryTab companyName={detail.name} />
+                    <AnalysisHistoryTab companyName={detail.name} companyId={companyId ?? undefined} />
                   ) : null}
                 </div>
               </>

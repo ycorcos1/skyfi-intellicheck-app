@@ -13,6 +13,7 @@ import styles from "./AnalysisHistoryTab.module.css";
 
 export interface AnalysisHistoryTabProps {
   companyName: string;
+  companyId?: string;
 }
 
 function formatDate(dateString: string) {
@@ -48,10 +49,12 @@ function resolveStatusBadge(analysis: CompanyAnalysis) {
   return { variant: "analysis-completed" as const, label: "Complete" };
 }
 
-export function AnalysisHistoryTab({ companyName }: AnalysisHistoryTabProps) {
+export function AnalysisHistoryTab({ companyName, companyId: propCompanyId }: AnalysisHistoryTabProps) {
   const params = useParams<{ id: string }>();
   const companyIdParam = params?.id;
-  const companyId = Array.isArray(companyIdParam) ? companyIdParam[0] : companyIdParam;
+  const urlCompanyId = Array.isArray(companyIdParam) ? companyIdParam[0] : companyIdParam;
+  // Use prop companyId if provided (for modal), otherwise fall back to URL params (for page route)
+  const companyId = propCompanyId ?? urlCompanyId;
 
   const { getAccessToken } = useAuth();
 
