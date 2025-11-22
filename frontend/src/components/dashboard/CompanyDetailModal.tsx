@@ -190,10 +190,7 @@ export function CompanyDetailModal({
           stopPolling();
         }
 
-        // Notify parent that company was updated
-        if (onCompanyUpdated) {
-          onCompanyUpdated();
-        }
+        // Don't call onCompanyUpdated here - only call it after actions that modify the company
       } catch (err) {
         console.error("CompanyDetailModal: Failed to load company detail", err);
 
@@ -216,7 +213,7 @@ export function CompanyDetailModal({
         }
       }
     },
-    [companyId, getAccessToken, stopPolling, onCompanyUpdated],
+    [companyId, getAccessToken, stopPolling],
   );
 
   useEffect(() => {
@@ -308,6 +305,10 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company flagged as fraudulent." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
+      // Notify parent that company was updated
+      if (onCompanyUpdated) {
+        onCompanyUpdated();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to flag company";
       setBanner({ type: "error", message });
@@ -315,7 +316,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, getAccessToken, loadDetail]);
+  }, [companyId, getAccessToken, loadDetail, onCompanyUpdated]);
 
   const handleRevokeApproval = useCallback(async () => {
     if (!companyId) {
@@ -329,6 +330,10 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company approval revoked." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
+      // Notify parent that company was updated
+      if (onCompanyUpdated) {
+        onCompanyUpdated();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to revoke approval";
       setBanner({ type: "error", message });
@@ -336,7 +341,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, getAccessToken, loadDetail]);
+  }, [companyId, getAccessToken, loadDetail, onCompanyUpdated]);
 
   const handleReviewComplete = useCallback(async () => {
     if (!companyId) {
@@ -350,6 +355,10 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company marked as review complete." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
+      // Notify parent that company was updated
+      if (onCompanyUpdated) {
+        onCompanyUpdated();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to mark review complete";
       setBanner({ type: "error", message });
@@ -357,7 +366,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, getAccessToken, loadDetail]);
+  }, [companyId, getAccessToken, loadDetail, onCompanyUpdated]);
 
   const handleExportPdf = useCallback(async () => {
     if (!companyId || !detail?.company.name) {
