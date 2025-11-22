@@ -458,9 +458,6 @@ export default function DashboardPage() {
     setDeleteModalCompany(null);
   }, []);
 
-  // Track if modal was open to refresh on close
-  const wasModalOpenRef = useRef(false);
-
   const tableColumnsWithActions: TableColumn<Company>[] = useMemo(
     () => [
       ...tableColumns,
