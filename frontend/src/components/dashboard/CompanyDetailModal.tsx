@@ -95,6 +95,8 @@ export function CompanyDetailModal({
   const [statusUpdate, setStatusUpdate] = useState<AnalysisStatusResponse | null>(null);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const lastUpdateRef = useRef<number>(0);
+  const loadDetailRef = useRef<(({ initial }: { initial?: boolean }) => Promise<void>) | undefined>(undefined);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -183,7 +185,9 @@ export function CompanyDetailModal({
         if (data.company.analysis_status === "in_progress" || data.company.analysis_status === "pending") {
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
-              void loadDetail({ initial: false });
+              if (loadDetailRef.current) {
+                void loadDetailRef.current({ initial: false });
+              }
             }, POLLING_INTERVAL_MS);
           }
         } else {
@@ -216,15 +220,22 @@ export function CompanyDetailModal({
     [companyId, getAccessToken, stopPolling],
   );
 
+  // Update the ref whenever loadDetail changes
   useEffect(() => {
-    if (isOpen && companyId) {
-      void loadDetail({ initial: true });
+    loadDetailRef.current = loadDetail;
+  }, [loadDetail]);
+
+  useEffect(() => {
+    if (isOpen && companyId && loadDetailRef.current) {
+      void loadDetailRef.current({ initial: true });
     }
 
     return () => {
       stopPolling();
     };
-  }, [isOpen, companyId, loadDetail, stopPolling]);
+    // Only depend on isOpen and companyId - loadDetail is accessed via ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, companyId, stopPolling]);
 
   const checkAnalysisStatus = useCallback(async () => {
     if (!companyId) {
@@ -305,9 +316,14 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company flagged as fraudulent." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
-      // Notify parent that company was updated
+      // Notify parent that company was updated (debounce to prevent rapid refreshes)
       if (onCompanyUpdated) {
-        onCompanyUpdated();
+        const now = Date.now();
+        // Only call if at least 1 second has passed since last update
+        if (now - lastUpdateRef.current > 1000) {
+          lastUpdateRef.current = now;
+          onCompanyUpdated();
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to flag company";
@@ -330,9 +346,14 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company approval revoked." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
-      // Notify parent that company was updated
+      // Notify parent that company was updated (debounce to prevent rapid refreshes)
       if (onCompanyUpdated) {
-        onCompanyUpdated();
+        const now = Date.now();
+        // Only call if at least 1 second has passed since last update
+        if (now - lastUpdateRef.current > 1000) {
+          lastUpdateRef.current = now;
+          onCompanyUpdated();
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to revoke approval";
@@ -355,9 +376,14 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company marked as review complete." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
-      // Notify parent that company was updated
+      // Notify parent that company was updated (debounce to prevent rapid refreshes)
       if (onCompanyUpdated) {
-        onCompanyUpdated();
+        const now = Date.now();
+        // Only call if at least 1 second has passed since last update
+        if (now - lastUpdateRef.current > 1000) {
+          lastUpdateRef.current = now;
+          onCompanyUpdated();
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to mark review complete";

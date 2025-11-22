@@ -450,6 +450,12 @@ export default function DashboardPage() {
     setDeleteModalCompany(null);
   }, []);
 
+  const handleCompanyUpdated = useCallback(() => {
+    // Refresh the companies list when company is updated in the modal
+    // Use setRefreshToken to trigger a refresh without causing re-render loops
+    setRefreshToken((prev) => prev + 1);
+  }, []);
+
   const tableColumnsWithActions: TableColumn<Company>[] = useMemo(
     () => [
       ...tableColumns,
@@ -664,10 +670,7 @@ export default function DashboardPage() {
         isOpen={selectedCompanyId !== null}
         companyId={selectedCompanyId}
         onClose={() => setSelectedCompanyId(null)}
-        onCompanyUpdated={() => {
-          // Refresh the companies list when company is updated in the modal
-          void loadCompanies();
-        }}
+        onCompanyUpdated={handleCompanyUpdated}
       />
     </ProtectedLayout>
   );
