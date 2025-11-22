@@ -319,6 +319,7 @@ export default function DashboardPage() {
 
   // Use a ref to store the latest loadCompanies function to avoid dependency issues
   const loadCompaniesRef = useRef<(() => Promise<void>) | undefined>(undefined);
+  const lastRefreshTokenRef = useRef(0);
 
   const loadCompanies = useCallback(async () => {
     if (riskRangeError || !isAuthenticated || isLoggingOut) {
@@ -400,10 +401,14 @@ export default function DashboardPage() {
     loadCompaniesRef.current = loadCompanies;
   }, [loadCompanies]);
 
+  const lastRefreshTokenRef = useRef(0);
+  
   useEffect(() => {
     // Only load companies if authenticated and not logging out
     // Add a delay to ensure auth state is stable and prevent race conditions
-    if (isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+    // Also check if refreshToken actually changed to prevent unnecessary reloads
+    if (refreshToken !== lastRefreshTokenRef.current && isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+      lastRefreshTokenRef.current = refreshToken;
       const timer = setTimeout(() => {
         // Double-check we're still authenticated before loading
         if (isAuthenticated && !isLoggingOut && loadCompaniesRef.current && !isLoadingRef.current) {
