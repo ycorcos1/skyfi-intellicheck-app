@@ -401,13 +401,15 @@ export default function DashboardPage() {
     loadCompaniesRef.current = loadCompanies;
   }, [loadCompanies]);
 
-  const lastRefreshTokenRef = useRef(0);
-  
   useEffect(() => {
     // Only load companies if authenticated and not logging out
     // Add a delay to ensure auth state is stable and prevent race conditions
     // Also check if refreshToken actually changed to prevent unnecessary reloads
-    if (refreshToken !== lastRefreshTokenRef.current && isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+    // On initial mount (refreshToken === 0 and lastRefreshTokenRef.current === 0), allow load
+    const shouldLoad = refreshToken !== lastRefreshTokenRef.current || 
+                      (refreshToken === 0 && lastRefreshTokenRef.current === 0);
+    
+    if (shouldLoad && isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
       lastRefreshTokenRef.current = refreshToken;
       const timer = setTimeout(() => {
         // Double-check we're still authenticated before loading
