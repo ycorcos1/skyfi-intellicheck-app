@@ -60,11 +60,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 3rem;
-  padding: 0.35rem 0.75rem;
+  min-width: 2.5rem;
+  padding: 0.25rem 0.5rem;
   border-radius: var(--radius-full);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
 }
 
 .riskLow {

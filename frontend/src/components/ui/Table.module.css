@@ -27,12 +27,12 @@
 }
 
 .table th {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   text-align: left;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   border-bottom: 2px solid var(--color-gray-medium);
 }
 
@@ -122,12 +122,13 @@
 }
 
 .cell {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   font-size: var(--text-sm);
   border-bottom: 1px solid var(--color-gray-medium);
   color: var(--color-black);
   vertical-align: middle;
   overflow: hidden;
+  line-height: 1.4;
 }
 
 .table tbody tr:last-of-type .cell {
