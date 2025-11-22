@@ -74,7 +74,7 @@
 
 .content {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden; /* Remove scrolling from content - only tabContent will scroll */
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -138,6 +138,7 @@
   gap: var(--space-2);
   padding: var(--space-1) 0; /* Add vertical padding to prevent cut-off */
   margin: 0; /* Ensure no margin that could cause issues */
+  flex-shrink: 0; /* Prevent actions from being cut off */
 }
 
 .dangerButton {
@@ -153,9 +154,12 @@
 }
 
 .tabContent {
+  flex: 1;
+  overflow-y: auto; /* Only tab content scrolls */
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-height: 0; /* Allow flex item to shrink */
 }
 
 @media (max-width: var(--breakpoint-md)) {
