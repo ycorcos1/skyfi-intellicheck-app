@@ -58,7 +58,7 @@ body {
 
 @media (min-width: var(--breakpoint-lg)) {
   html {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
