@@ -27,7 +27,7 @@
 }
 
 .table th {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   text-align: left;
   font-size: var(--text-sm);
   font-weight: 600;
@@ -122,8 +122,8 @@
 }
 
 .cell {
-  padding: 1rem 1.5rem;
-  font-size: var(--text-base);
+  padding: 0.75rem 1rem;
+  font-size: var(--text-sm);
   border-bottom: 1px solid var(--color-gray-medium);
   color: var(--color-black);
   vertical-align: middle;
