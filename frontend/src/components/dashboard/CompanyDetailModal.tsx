@@ -180,7 +180,7 @@ export function CompanyDetailModal({
         
         setDetail(data);
 
-        if (data.company?.analysis_status === "in_progress" || data.company?.analysis_status === "pending") {
+        if (data.company.analysis_status === "in_progress" || data.company.analysis_status === "pending") {
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               void loadDetail({ initial: false });
@@ -562,10 +562,10 @@ export function CompanyDetailModal({
               <div className={styles.loadingState}>
                 <LoadingSkeleton rows={10} columns={1} />
               </div>
-            ) : error || !detail ? (
+            ) : error || !detail || !detail.company ? (
               <div className={styles.errorState}>
                 <h3>Error Loading Company</h3>
-                <p>{error ?? "Company not found"}</p>
+                <p>{error ?? "Company not found or invalid data"}</p>
                 <div className={styles.errorActions}>
                   <Button
                     onClick={() => {
@@ -579,7 +579,7 @@ export function CompanyDetailModal({
                   </Button>
                 </div>
               </div>
-            ) : detail && detail.company ? (
+            ) : (
               <>
                 {banner ? (
                   <div className={banner.type === "success" ? styles.statusBannerSuccess : styles.statusBannerError}>
@@ -617,23 +617,6 @@ export function CompanyDetailModal({
                   ) : null}
                 </div>
               </>
-            ) : (
-              <div className={styles.errorState}>
-                <h3>Error Loading Company</h3>
-                <p>Company data is invalid or incomplete.</p>
-                <div className={styles.errorActions}>
-                  <Button
-                    onClick={() => {
-                      void loadDetail({ initial: true });
-                    }}
-                  >
-                    Retry
-                  </Button>
-                  <Button variant="secondary" onClick={onClose}>
-                    Close
-                  </Button>
-                </div>
-              </div>
             )}
           </div>
         </div>
