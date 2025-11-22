@@ -463,6 +463,12 @@ export default function DashboardPage() {
     setDeleteModalCompany(null);
   }, []);
 
+  const handleModalClose = useCallback(() => {
+    // Just close the modal - don't refresh to prevent any reload loops
+    wasModalOpenRef.current = false;
+    setSelectedCompanyId(null);
+  }, []);
+
   const tableColumnsWithActions: TableColumn<Company>[] = useMemo(
     () => [
       ...tableColumns,
@@ -676,18 +682,14 @@ export default function DashboardPage() {
       <CompanyDetailModal
         isOpen={selectedCompanyId !== null}
         companyId={selectedCompanyId}
-        onClose={() => {
-          // Refresh companies list when modal closes
+        onClose={useCallback(() => {
+          // Only refresh if modal was actually open
           const wasOpen = wasModalOpenRef.current;
           wasModalOpenRef.current = false;
           setSelectedCompanyId(null);
-          if (wasOpen) {
-            // Small delay to ensure modal is fully closed before refreshing
-            setTimeout(() => {
-              setRefreshToken((prev) => prev + 1);
-            }, 100);
-          }
-        }}
+          // Don't refresh on close - let user manually refresh if needed
+          // This prevents any possibility of reload loops
+        }, [])}
       />
     </ProtectedLayout>
   );
