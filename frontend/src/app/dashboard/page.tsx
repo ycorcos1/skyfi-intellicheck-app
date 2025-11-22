@@ -682,14 +682,7 @@ export default function DashboardPage() {
       <CompanyDetailModal
         isOpen={selectedCompanyId !== null}
         companyId={selectedCompanyId}
-        onClose={useCallback(() => {
-          // Only refresh if modal was actually open
-          const wasOpen = wasModalOpenRef.current;
-          wasModalOpenRef.current = false;
-          setSelectedCompanyId(null);
-          // Don't refresh on close - let user manually refresh if needed
-          // This prevents any possibility of reload loops
-        }, [])}
+        onClose={handleModalClose}
       />
     </ProtectedLayout>
   );
