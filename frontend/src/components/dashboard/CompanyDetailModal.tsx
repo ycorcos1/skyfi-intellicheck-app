@@ -418,7 +418,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, detail?.company.name, getAccessToken]);
+  }, [companyId, detail?.name, getAccessToken]);
 
   const handlePreview = useCallback(() => {
     setShowPreviewModal(true);
