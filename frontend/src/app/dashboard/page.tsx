@@ -229,6 +229,14 @@ export default function DashboardPage() {
     error_count: number;
     errors: Array<{ index: number; error: string }>;
   } | null>(null);
+  const wasModalOpenRef = useRef(false);
+
+  // Track when modal opens
+  useEffect(() => {
+    if (selectedCompanyId !== null) {
+      wasModalOpenRef.current = true;
+    }
+  }, [selectedCompanyId]);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -450,11 +458,8 @@ export default function DashboardPage() {
     setDeleteModalCompany(null);
   }, []);
 
-  const handleCompanyUpdated = useCallback(() => {
-    // Refresh the companies list when company is updated in the modal
-    // Use setRefreshToken to trigger a refresh without causing re-render loops
-    setRefreshToken((prev) => prev + 1);
-  }, []);
+  // Track if modal was open to refresh on close
+  const wasModalOpenRef = useRef(false);
 
   const tableColumnsWithActions: TableColumn<Company>[] = useMemo(
     () => [
@@ -669,8 +674,18 @@ export default function DashboardPage() {
       <CompanyDetailModal
         isOpen={selectedCompanyId !== null}
         companyId={selectedCompanyId}
-        onClose={() => setSelectedCompanyId(null)}
-        onCompanyUpdated={handleCompanyUpdated}
+        onClose={() => {
+          // Refresh companies list when modal closes
+          const wasOpen = wasModalOpenRef.current;
+          wasModalOpenRef.current = false;
+          setSelectedCompanyId(null);
+          if (wasOpen) {
+            // Small delay to ensure modal is fully closed before refreshing
+            setTimeout(() => {
+              setRefreshToken((prev) => prev + 1);
+            }, 100);
+          }
+        }}
       />
     </ProtectedLayout>
   );

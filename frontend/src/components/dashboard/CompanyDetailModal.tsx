@@ -60,7 +60,6 @@ export interface CompanyDetailModalProps {
   isOpen: boolean;
   companyId: string | null;
   onClose: () => void;
-  onCompanyUpdated?: () => void;
 }
 
 function createExportFilename(name: string | undefined, extension: "pdf" | "json") {
@@ -80,7 +79,6 @@ export function CompanyDetailModal({
   isOpen,
   companyId,
   onClose,
-  onCompanyUpdated,
 }: CompanyDetailModalProps) {
   const modalRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -95,7 +93,6 @@ export function CompanyDetailModal({
   const [statusUpdate, setStatusUpdate] = useState<AnalysisStatusResponse | null>(null);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const lastUpdateRef = useRef<number>(0);
   const loadDetailRef = useRef<(({ initial }: { initial?: boolean }) => Promise<void>) | undefined>(undefined);
 
   const stopPolling = useCallback(() => {
@@ -316,15 +313,6 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company flagged as fraudulent." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
-      // Notify parent that company was updated (debounce to prevent rapid refreshes)
-      if (onCompanyUpdated) {
-        const now = Date.now();
-        // Only call if at least 1 second has passed since last update
-        if (now - lastUpdateRef.current > 1000) {
-          lastUpdateRef.current = now;
-          onCompanyUpdated();
-        }
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to flag company";
       setBanner({ type: "error", message });
@@ -332,7 +320,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, getAccessToken, loadDetail, onCompanyUpdated]);
+  }, [companyId, getAccessToken, loadDetail]);
 
   const handleRevokeApproval = useCallback(async () => {
     if (!companyId) {
@@ -346,15 +334,6 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company approval revoked." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
-      // Notify parent that company was updated (debounce to prevent rapid refreshes)
-      if (onCompanyUpdated) {
-        const now = Date.now();
-        // Only call if at least 1 second has passed since last update
-        if (now - lastUpdateRef.current > 1000) {
-          lastUpdateRef.current = now;
-          onCompanyUpdated();
-        }
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to revoke approval";
       setBanner({ type: "error", message });
@@ -362,7 +341,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, getAccessToken, loadDetail, onCompanyUpdated]);
+  }, [companyId, getAccessToken, loadDetail]);
 
   const handleReviewComplete = useCallback(async () => {
     if (!companyId) {
@@ -376,15 +355,6 @@ export function CompanyDetailModal({
       setBanner({ type: "success", message: "Company marked as review complete." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
-      // Notify parent that company was updated (debounce to prevent rapid refreshes)
-      if (onCompanyUpdated) {
-        const now = Date.now();
-        // Only call if at least 1 second has passed since last update
-        if (now - lastUpdateRef.current > 1000) {
-          lastUpdateRef.current = now;
-          onCompanyUpdated();
-        }
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to mark review complete";
       setBanner({ type: "error", message });
@@ -392,7 +362,7 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, getAccessToken, loadDetail, onCompanyUpdated]);
+  }, [companyId, getAccessToken, loadDetail]);
 
   const handleExportPdf = useCallback(async () => {
     if (!companyId || !detail?.company.name) {
