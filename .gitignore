@@ -105,3 +105,6 @@ secrets.json
 .temp/
 
 GITHUB_SECRETS_VALUES.md
+
+# Demo/Test Data
+docs/sample-companies-demo.json

@@ -311,7 +311,7 @@ export default function DashboardPage() {
 
   // Use a ref to store the latest loadCompanies function to avoid dependency issues
   const loadCompaniesRef = useRef<(() => Promise<void>) | undefined>(undefined);
-  
+
   const loadCompanies = useCallback(async () => {
     if (riskRangeError || !isAuthenticated || isLoggingOut) {
       return;
