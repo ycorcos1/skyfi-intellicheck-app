@@ -172,9 +172,15 @@ export function CompanyDetailModal({
         }
 
         const data = await fetchCompanyDetail(companyId, token);
+        
+        // Validate response structure
+        if (!data || !data.company) {
+          throw new Error("Invalid response: company data is missing");
+        }
+        
         setDetail(data);
 
-        if (data.company.analysis_status === "in_progress" || data.company.analysis_status === "pending") {
+        if (data.company?.analysis_status === "in_progress" || data.company?.analysis_status === "pending") {
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               void loadDetail({ initial: false });
@@ -414,14 +420,14 @@ export function CompanyDetailModal({
   }, []);
 
   const actionItems = useMemo<ActionItem[]>(() => {
-    if (!detail) {
+    if (!detail || !detail.company) {
       return [];
     }
 
     const items: ActionItem[] = [];
     const { company, latest_analysis } = detail;
 
-    if (isAnalyzingStatus(company.analysis_status)) {
+    if (company && isAnalyzingStatus(company.analysis_status)) {
       items.push({
         key: "rerun",
         label: "Rerun Analysis",
@@ -441,7 +447,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (company.status === "approved") {
+    if (company?.status === "approved") {
       items.push({
         key: "revoke",
         label: "Revoke Approval",
@@ -453,7 +459,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (company.status !== "fraudulent" && company.status !== "revoked") {
+    if (company?.status && company.status !== "fraudulent" && company.status !== "revoked") {
       items.push({
         key: "flag",
         label: "Flag as Fraudulent",
@@ -465,7 +471,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (company.status === "pending") {
+    if (company?.status === "pending") {
       items.push({
         key: "review",
         label: "Mark Review Complete",
@@ -573,7 +579,7 @@ export function CompanyDetailModal({
                   </Button>
                 </div>
               </div>
-            ) : (
+            ) : detail && detail.company ? (
               <>
                 {banner ? (
                   <div className={banner.type === "success" ? styles.statusBannerSuccess : styles.statusBannerError}>
@@ -611,6 +617,23 @@ export function CompanyDetailModal({
                   ) : null}
                 </div>
               </>
+            ) : (
+              <div className={styles.errorState}>
+                <h3>Error Loading Company</h3>
+                <p>Company data is invalid or incomplete.</p>
+                <div className={styles.errorActions}>
+                  <Button
+                    onClick={() => {
+                      void loadDetail({ initial: true });
+                    }}
+                  >
+                    Retry
+                  </Button>
+                  <Button variant="secondary" onClick={onClose}>
+                    Close
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </div>
