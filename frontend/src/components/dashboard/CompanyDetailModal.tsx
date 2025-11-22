@@ -172,14 +172,14 @@ export function CompanyDetailModal({
 
         const data = await fetchCompanyDetail(companyId, token);
         
-        // Validate response structure
-        if (!data || !data.company) {
+        // Validate response structure - CompanyDetail extends Company, so check for required fields
+        if (!data || !data.id || !data.name) {
           throw new Error("Invalid response: company data is missing");
         }
         
         setDetail(data);
 
-        if (data.company.analysis_status === "in_progress" || data.company.analysis_status === "pending") {
+        if (data.analysis_status === "in_progress" || data.analysis_status === "pending") {
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               if (loadDetailRef.current) {
@@ -365,7 +365,7 @@ export function CompanyDetailModal({
   }, [companyId, getAccessToken, loadDetail]);
 
   const handleExportPdf = useCallback(async () => {
-    if (!companyId || !detail?.company.name) {
+    if (!companyId || !detail?.name) {
       return;
     }
 
@@ -376,7 +376,7 @@ export function CompanyDetailModal({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = createExportFilename(detail.company.name, "pdf");
+      link.download = createExportFilename(detail.name, "pdf");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -390,10 +390,10 @@ export function CompanyDetailModal({
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, detail?.company.name, getAccessToken]);
+  }, [companyId, detail?.name, getAccessToken]);
 
   const handleExportJson = useCallback(async () => {
-    if (!companyId || !detail?.company.name) {
+    if (!companyId || !detail?.name) {
       return;
     }
 
@@ -404,7 +404,7 @@ export function CompanyDetailModal({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = createExportFilename(detail.company.name, "json");
+      link.download = createExportFilename(detail.name, "json");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -425,14 +425,14 @@ export function CompanyDetailModal({
   }, []);
 
   const actionItems = useMemo<ActionItem[]>(() => {
-    if (!detail || !detail.company) {
+    if (!detail || !detail.id || !detail.name) {
       return [];
     }
 
     const items: ActionItem[] = [];
-    const { company, latest_analysis } = detail;
+    const { latest_analysis } = detail;
 
-    if (company && isAnalyzingStatus(company.analysis_status)) {
+    if (isAnalyzingStatus(detail.analysis_status)) {
       items.push({
         key: "rerun",
         label: "Rerun Analysis",
@@ -452,7 +452,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (company?.status === "approved") {
+    if (detail.status === "approved") {
       items.push({
         key: "revoke",
         label: "Revoke Approval",
@@ -464,7 +464,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (company?.status && company.status !== "fraudulent" && company.status !== "revoked") {
+    if (detail.status && detail.status !== "fraudulent" && detail.status !== "revoked") {
       items.push({
         key: "flag",
         label: "Flag as Fraudulent",
@@ -476,7 +476,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (company?.status === "pending") {
+    if (detail.status === "pending") {
       items.push({
         key: "review",
         label: "Mark Review Complete",
@@ -567,7 +567,7 @@ export function CompanyDetailModal({
               <div className={styles.loadingState}>
                 <LoadingSkeleton rows={10} columns={1} />
               </div>
-            ) : error || !detail || !detail.company ? (
+            ) : error || !detail || !detail.id ? (
               <div className={styles.errorState}>
                 <h3>Error Loading Company</h3>
                 <p>{error ?? "Company not found or invalid data"}</p>
@@ -592,7 +592,7 @@ export function CompanyDetailModal({
                   </div>
                 ) : null}
 
-                <CompanyHeader company={detail.company} latestAnalysis={detail.latest_analysis} />
+                <CompanyHeader company={detail} latestAnalysis={detail.latest_analysis} />
 
                 <div className={styles.actions}>
                   {actionItems.map((item) => (
@@ -612,13 +612,13 @@ export function CompanyDetailModal({
 
                 <div className={styles.tabContent}>
                   {activeTab === "overview" && detail.latest_analysis ? (
-                    <OverviewTab analysis={detail.latest_analysis} company={detail.company} />
+                    <OverviewTab analysis={detail.latest_analysis} company={detail} />
                   ) : activeTab === "documents" ? (
                     <DocumentsTab companyId={companyId ?? undefined} />
                   ) : activeTab === "notes" ? (
                     <NotesTab companyId={companyId ?? undefined} />
                   ) : activeTab === "history" ? (
-                    <AnalysisHistoryTab companyName={detail.company.name} />
+                    <AnalysisHistoryTab companyName={detail.name} />
                   ) : null}
                 </div>
               </>
@@ -630,7 +630,7 @@ export function CompanyDetailModal({
       {showPreviewModal && detail?.latest_analysis ? (
         <ExportPreviewModal
           isOpen={showPreviewModal}
-          company={detail.company}
+          company={detail}
           analysis={detail.latest_analysis}
           onClose={() => setShowPreviewModal(false)}
           onExportPdf={handleExportPdf}

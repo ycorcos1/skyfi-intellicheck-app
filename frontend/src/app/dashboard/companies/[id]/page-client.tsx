@@ -150,14 +150,14 @@ export default function CompanyDetailPage() {
         console.log("CompanyDetailPage: Loading company detail", { companyId, hasToken: !!token });
         const data = await fetchCompanyDetail(companyId, token);
         console.log("CompanyDetailPage: Company detail loaded successfully", { 
-          companyName: data.company.name,
-          status: data.company.status,
-          analysisStatus: data.company.analysis_status 
+          companyName: data.name,
+          status: data.status,
+          analysisStatus: data.analysis_status 
         });
         
         setDetail(data);
 
-        if (data.company.analysis_status === "in_progress" || data.company.analysis_status === "pending") {
+        if (data.analysis_status === "in_progress" || data.analysis_status === "pending") {
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               void loadDetail({ initial: false });
@@ -341,7 +341,7 @@ export default function CompanyDetailPage() {
   }, [companyId, getAccessToken, loadDetail]);
 
   const handleExportPdf = useCallback(async () => {
-    if (!companyId || !detail?.company.name) {
+    if (!companyId || !detail?.name) {
       return;
     }
 
@@ -352,7 +352,7 @@ export default function CompanyDetailPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = createExportFilename(detail.company.name, "pdf");
+      link.download = createExportFilename(detail.name, "pdf");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -366,10 +366,10 @@ export default function CompanyDetailPage() {
     } finally {
       setActionLoading(null);
     }
-  }, [companyId, detail?.company.name, getAccessToken]);
+  }, [companyId, detail?.name, getAccessToken]);
 
   const handleExportJson = useCallback(async () => {
-    if (!companyId || !detail?.company.name) {
+    if (!companyId || !detail?.name) {
       return;
     }
 
@@ -380,7 +380,7 @@ export default function CompanyDetailPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = createExportFilename(detail.company.name, "json");
+      link.download = createExportFilename(detail.name, "json");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -406,9 +406,9 @@ export default function CompanyDetailPage() {
     }
 
     const items: ActionItem[] = [];
-    const { company, latest_analysis } = detail;
+    const { latest_analysis } = detail;
 
-    if (isAnalyzingStatus(company.analysis_status)) {
+    if (isAnalyzingStatus(detail.analysis_status)) {
       items.push({
         key: "rerun",
         label: "Rerun Analysis",
@@ -428,7 +428,7 @@ export default function CompanyDetailPage() {
       });
     }
 
-    if (company.status === "approved") {
+    if (detail.status === "approved") {
       items.push({
         key: "revoke",
         label: "Revoke Approval",
@@ -440,7 +440,7 @@ export default function CompanyDetailPage() {
       });
     }
 
-    if (company.status !== "fraudulent" && company.status !== "revoked") {
+    if (detail.status !== "fraudulent" && detail.status !== "revoked") {
       items.push({
         key: "flag",
         label: "Flag as Fraudulent",
@@ -452,7 +452,7 @@ export default function CompanyDetailPage() {
       });
     }
 
-    if (company.status === "pending") {
+    if (detail.status === "pending") {
       items.push({
         key: "review",
         label: "Mark Review Complete",
@@ -567,10 +567,10 @@ export default function CompanyDetailPage() {
             Dashboard
           </Link>
           <span className={styles.breadcrumbSeparator}>/</span>
-          <span className={styles.breadcrumbCurrent}>{detail.company.name}</span>
+          <span className={styles.breadcrumbCurrent}>{detail.name}</span>
         </nav>
 
-        <CompanyHeader company={detail.company} latestAnalysis={detail.latest_analysis} />
+        <CompanyHeader company={detail} latestAnalysis={detail.latest_analysis} />
 
         <div className={styles.actions}>
           {actionItems.map((item) => (
@@ -590,20 +590,20 @@ export default function CompanyDetailPage() {
 
         <div className={styles.tabContent}>
           {activeTab === "overview" && detail.latest_analysis ? (
-            <OverviewTab analysis={detail.latest_analysis} company={detail.company} />
+            <OverviewTab analysis={detail.latest_analysis} company={detail} />
           ) : activeTab === "documents" ? (
             <DocumentsTab />
           ) : activeTab === "notes" ? (
             <NotesTab />
           ) : activeTab === "history" ? (
-            <AnalysisHistoryTab companyName={detail.company.name} />
+            <AnalysisHistoryTab companyName={detail.name} />
           ) : null}
         </div>
 
         {showPreviewModal && detail.latest_analysis ? (
           <ExportPreviewModal
             isOpen={showPreviewModal}
-            company={detail.company}
+            company={detail}
             analysis={detail.latest_analysis}
             onClose={() => setShowPreviewModal(false)}
             onExportPdf={handleExportPdf}

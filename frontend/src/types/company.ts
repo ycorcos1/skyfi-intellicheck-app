@@ -72,8 +72,7 @@ export interface Company {
   [key: string]: unknown;
 }
 
-export interface CompanyDetail {
-  company: Company;
+export interface CompanyDetail extends Company {
   latest_analysis: CompanyAnalysis | null;
 }
 
