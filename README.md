@@ -96,6 +96,7 @@ SkyFi's self-service registration for Enterprise accounts was vulnerable to risk
 - **Non-existent companies**: Registration of fake companies to gain access
 
 The previous manual review process was:
+
 - **Slow**: Time-consuming for operators, creating bottlenecks
 - **Error-prone**: Dependent on operator expertise and attention to detail
 - **Inconsistent**: Different operators might assess the same company differently
@@ -199,6 +200,7 @@ SkyFi IntelliCheck follows an **AWS-native, serverless architecture** designed f
 ### Technology Stack
 
 #### Backend
+
 - **API Framework**: FastAPI (Python 3.11)
 - **Database**: PostgreSQL 15+ (AWS RDS)
 - **ORM**: SQLAlchemy 2.0
@@ -208,6 +210,7 @@ SkyFi IntelliCheck follows an **AWS-native, serverless architecture** designed f
 - **Authentication**: AWS Cognito (JWT)
 
 #### Frontend
+
 - **Framework**: Next.js 16 (React 19)
 - **Language**: TypeScript
 - **Styling**: CSS Modules + CSS Variables
@@ -215,6 +218,7 @@ SkyFi IntelliCheck follows an **AWS-native, serverless architecture** designed f
 - **Design**: Black/White/Yellow brand palette
 
 #### Infrastructure
+
 - **Cloud Provider**: AWS (us-east-1)
 - **IaC**: Terraform >= 1.5.0
 - **Compute**: ECS Fargate (API), Lambda (Workers)
@@ -223,6 +227,7 @@ SkyFi IntelliCheck follows an **AWS-native, serverless architecture** designed f
 - **Networking**: VPC, ALB, NAT Gateway, Security Groups
 
 #### External Integrations
+
 - **OpenAI GPT-4**: AI reasoning and risk assessment
 - **WHOIS Services**: Domain registration data
 - **DNS Services**: Domain resolution and record validation
@@ -235,43 +240,51 @@ SkyFi IntelliCheck follows an **AWS-native, serverless architecture** designed f
 ### Core Features
 
 - **Automated Company Verification**
+
   - Multi-source data validation (WHOIS, DNS, MX, Web scraping)
   - Real-time analysis status tracking
   - Background processing via SQS/Lambda
 
 - **Hybrid Risk Scoring**
+
   - Rule-based scoring from verification signals
   - AI-powered analysis using OpenAI GPT-4
   - Final score combines both approaches (0-100 scale)
 
 - **Operator Dashboard**
+
   - Company listing with filtering and search
   - Real-time analysis progress tracking
   - Status management (approve, reject, flag, revoke)
   - Bulk upload for testing/demo purposes
 
 - **Document Management**
+
   - Secure document upload via presigned S3 URLs
   - Document metadata tracking
   - Download with presigned URLs
   - Document deletion
 
 - **Internal Notes**
+
   - Operator notes per company
   - Note creation, editing, and deletion
   - User tracking for audit purposes
 
 - **Export Capabilities**
+
   - PDF report generation (on-demand)
   - JSON export with full analysis data
   - Preview before export
 
 - **Analysis History**
+
   - Versioned analysis storage
   - View all analysis versions per company
   - Compare analysis results over time
 
 - **Reanalysis**
+
   - Full reanalysis (all checks)
   - Selective retry (failed checks only)
   - Automatic versioning
@@ -308,6 +321,7 @@ Before setting up the project locally, ensure you have:
 #### AWS Account Setup
 
 You'll need an AWS account with permissions to create:
+
 - VPC, subnets, NAT gateways
 - RDS PostgreSQL instances
 - S3 buckets
@@ -321,53 +335,59 @@ You'll need an AWS account with permissions to create:
 ### Backend Setup
 
 1. **Navigate to backend directory:**
+
    ```bash
    cd backend
    ```
 
 2. **Create and activate virtual environment:**
+
    ```bash
    python -m venv .venv
    source .venv/bin/activate  # Windows: .venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Configure environment variables:**
-   
+
    Create a `.env` file in the `backend/` directory:
+
    ```bash
    # Database
    DB_URL=postgresql://user:password@localhost:5432/intellicheck
-   
+
    # Cognito (get from Terraform outputs after infrastructure deployment)
    COGNITO_REGION=us-east-1
    COGNITO_USER_POOL_ID=your-pool-id
    COGNITO_APP_CLIENT_ID=your-client-id
    COGNITO_ISSUER=https://cognito-idp.us-east-1.amazonaws.com/your-pool-id
-   
+
    # AWS Services
    AWS_REGION=us-east-1
    SQS_QUEUE_URL=your-queue-url
    S3_BUCKET_NAME=your-bucket-name
-   
+
    # OpenAI (optional for local dev)
    OPENAI_API_KEY=your-openai-key
-   
+
    # Application
    API_VERSION=1.0.0
    ENVIRONMENT=development
    ```
 
 5. **Start the API server:**
+
    ```bash
    uvicorn main:app --reload
    ```
 
 6. **Verify the API is running:**
+
    - Health check: http://localhost:8000/health
    - API docs: http://localhost:8000/docs
    - Version: http://localhost:8000/version
@@ -394,18 +414,21 @@ docker run -p 8000:8000 \
 ### Frontend Setup
 
 1. **Navigate to frontend directory:**
+
    ```bash
    cd frontend
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment variables:**
-   
+
    Create a `.env.local` file in the `frontend/` directory:
+
    ```bash
    NEXT_PUBLIC_API_URL=http://localhost:8000
    NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-pool-id
@@ -414,15 +437,18 @@ docker run -p 8000:8000 \
    ```
 
 4. **Start the development server:**
+
    ```bash
    npm run dev
    ```
 
 5. **Access the application:**
+
    - Frontend: http://localhost:3000
    - Login page: http://localhost:3000/login
 
 6. **Run linting:**
+
    ```bash
    npm run lint
    ```
@@ -435,16 +461,19 @@ docker run -p 8000:8000 \
 ### AWS Infrastructure Setup
 
 1. **Navigate to infrastructure directory:**
+
    ```bash
    cd infra
    ```
 
 2. **Copy the example variables file:**
+
    ```bash
    cp terraform.tfvars.example terraform.tfvars
    ```
 
 3. **Edit `terraform.tfvars` with your configuration:**
+
    ```hcl
    aws_region           = "us-east-1"
    environment          = "dev"
@@ -455,26 +484,31 @@ docker run -p 8000:8000 \
    ```
 
 4. **Initialize Terraform:**
+
    ```bash
    terraform init
    ```
 
 5. **Review planned changes:**
+
    ```bash
    terraform plan
    ```
 
 6. **Apply infrastructure:**
+
    ```bash
    terraform apply
    ```
 
 7. **View outputs (needed for local development):**
+
    ```bash
    terraform output
    ```
 
    Key outputs you'll need:
+
    - `cognito_user_pool_id`
    - `cognito_app_client_id`
    - `api_url`
@@ -585,6 +619,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 The API validates:
+
 - Token signature (RS256)
 - Token expiration
 - Token issuer (Cognito User Pool)
@@ -599,6 +634,7 @@ The API validates:
 Creates a new company and automatically enqueues it for analysis.
 
 **Request Body:**
+
 ```json
 {
   "name": "Example Corp",
@@ -610,6 +646,7 @@ Creates a new company and automatically enqueues it for analysis.
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "company": {
@@ -632,6 +669,7 @@ Creates a new company and automatically enqueues it for analysis.
 List companies with filtering, search, and pagination.
 
 **Query Parameters:**
+
 - `page` (int, default: 1): Page number (1-indexed)
 - `limit` (int, default: 20, max: 100): Items per page
 - `search` (string, optional): Case-insensitive search by company name
@@ -641,6 +679,7 @@ List companies with filtering, search, and pagination.
 - `include_deleted` (bool, default: false): Include soft-deleted companies
 
 **Response:** `200 OK`
+
 ```json
 {
   "items": [
@@ -668,6 +707,7 @@ List companies with filtering, search, and pagination.
 Retrieve a single company with latest analysis.
 
 **Response:** `200 OK`
+
 ```json
 {
   "id": "uuid",
@@ -696,6 +736,7 @@ Retrieve a single company with latest analysis.
 Update company details (only allowed before first analysis).
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Name",
@@ -730,6 +771,7 @@ Restore a soft-deleted company.
 Trigger a new analysis for a company.
 
 **Request Body:**
+
 ```json
 {
   "retry_failed_only": false
@@ -737,6 +779,7 @@ Trigger a new analysis for a company.
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Reanalysis queued",
@@ -751,6 +794,7 @@ Trigger a new analysis for a company.
 Update company status via state machine action.
 
 **Request Body:**
+
 ```json
 {
   "action": "mark_review_complete"
@@ -758,6 +802,7 @@ Update company status via state machine action.
 ```
 
 **Valid Actions:**
+
 - `mark_review_complete`: `pending` → `approved`
 - `approve`: `pending` → `approved`
 - `reject`: `pending` → `rejected`
@@ -765,9 +810,12 @@ Update company status via state machine action.
 - `revoke_approval`: `approved` → `revoked`
 
 **Response:** `200 OK`
+
 ```json
 {
-  "company": { /* Company object */ },
+  "company": {
+    /* Company object */
+  },
   "previous_status": "pending",
   "new_status": "approved"
 }
@@ -796,6 +844,7 @@ Shortcut endpoint to revoke company approval.
 Get real-time analysis status for polling.
 
 **Response:** `200 OK`
+
 ```json
 {
   "status": "in_progress",
@@ -811,6 +860,7 @@ Get real-time analysis status for polling.
 Get all analysis versions for a company.
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -837,10 +887,15 @@ Get all analysis versions for a company.
 Export company verification report as JSON.
 
 **Response:** `200 OK`
+
 ```json
 {
-  "company": { /* Company data */ },
-  "latest_analysis": { /* Analysis data */ },
+  "company": {
+    /* Company data */
+  },
+  "latest_analysis": {
+    /* Analysis data */
+  },
   "exported_at": "2025-01-15T10:00:00Z"
 }
 ```
@@ -854,6 +909,7 @@ Export company verification report as PDF.
 **Response:** `200 OK` (application/pdf binary)
 
 **Headers:**
+
 ```
 Content-Type: application/pdf
 Content-Disposition: attachment; filename="company-report.pdf"
@@ -866,6 +922,7 @@ Content-Disposition: attachment; filename="company-report.pdf"
 Bulk upload companies from JSON array (for testing/demo).
 
 **Request Body:**
+
 ```json
 [
   {
@@ -886,14 +943,11 @@ Bulk upload companies from JSON array (for testing/demo).
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
-  "created": [
-    {"id": "uuid", "name": "Company 1", "domain": "company1.com"}
-  ],
-  "errors": [
-    {"index": 1, "error": "Domain already exists"}
-  ],
+  "created": [{ "id": "uuid", "name": "Company 1", "domain": "company1.com" }],
+  "errors": [{ "index": 1, "error": "Domain already exists" }],
   "total_processed": 2,
   "success_count": 1,
   "error_count": 1
@@ -909,6 +963,7 @@ Bulk upload companies from JSON array (for testing/demo).
 Generate a presigned S3 URL for document upload.
 
 **Request Body:**
+
 ```json
 {
   "filename": "business-license.pdf",
@@ -918,6 +973,7 @@ Generate a presigned S3 URL for document upload.
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "upload_url": "https://s3.amazonaws.com/bucket/path?signature=...",
@@ -933,6 +989,7 @@ Generate a presigned S3 URL for document upload.
 Save document metadata after upload.
 
 **Request Body:**
+
 ```json
 {
   "s3_key": "companies/{company_id}/documents/{document_id}/business-license.pdf",
@@ -953,6 +1010,7 @@ Save document metadata after upload.
 List all documents for a company.
 
 **Response:** `200 OK`
+
 ```json
 {
   "items": [
@@ -975,6 +1033,7 @@ List all documents for a company.
 Generate a presigned S3 URL for document download.
 
 **Response:** `200 OK`
+
 ```json
 {
   "download_url": "https://s3.amazonaws.com/bucket/path?signature=...",
@@ -999,6 +1058,7 @@ Delete a document (removes from S3 and database).
 Create an internal note for a company.
 
 **Request Body:**
+
 ```json
 {
   "content": "Follow up with company regarding additional documentation."
@@ -1006,6 +1066,7 @@ Create an internal note for a company.
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "id": "uuid",
@@ -1023,6 +1084,7 @@ Create an internal note for a company.
 List all notes for a company.
 
 **Response:** `200 OK`
+
 ```json
 {
   "items": [
@@ -1044,6 +1106,7 @@ List all notes for a company.
 Update an existing note.
 
 **Request Body:**
+
 ```json
 {
   "content": "Updated note content"
@@ -1069,6 +1132,7 @@ Delete a note.
 Health check endpoint that validates application and database connectivity.
 
 **Response:** `200 OK`
+
 ```json
 {
   "status": "healthy",
@@ -1084,6 +1148,7 @@ Health check endpoint that validates application and database connectivity.
 Return API version and optional build metadata.
 
 **Response:** `200 OK`
+
 ```json
 {
   "version": "1.0.0",
@@ -1110,24 +1175,25 @@ The database consists of four main tables:
 
 #### `companies` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY | Unique company identifier |
-| `name` | VARCHAR(255) | NOT NULL | Company name |
-| `domain` | VARCHAR(255) | NOT NULL, INDEXED | Company domain |
-| `website_url` | VARCHAR(500) | NULLABLE | Company website URL |
-| `email` | VARCHAR(255) | NULLABLE | Contact email |
-| `phone` | VARCHAR(50) | NULLABLE | Contact phone |
-| `status` | ENUM | NOT NULL, INDEXED | Company status (`pending`, `approved`, `rejected`, `fraudulent`, `revoked`) |
-| `risk_score` | INTEGER | NOT NULL, INDEXED | Current risk score (0-100) |
-| `analysis_status` | ENUM | NOT NULL, INDEXED | Analysis status (`pending`, `in_progress`, `completed`, `failed`, `incomplete`) |
-| `current_step` | VARCHAR(50) | NULLABLE | Current analysis step |
-| `last_analyzed_at` | TIMESTAMP | NULLABLE | Last analysis timestamp |
-| `is_deleted` | BOOLEAN | NOT NULL, INDEXED | Soft delete flag |
-| `created_at` | TIMESTAMP | NOT NULL, INDEXED | Creation timestamp |
-| `updated_at` | TIMESTAMP | NOT NULL | Last update timestamp |
+| Column             | Type         | Constraints       | Description                                                                     |
+| ------------------ | ------------ | ----------------- | ------------------------------------------------------------------------------- |
+| `id`               | UUID         | PRIMARY KEY       | Unique company identifier                                                       |
+| `name`             | VARCHAR(255) | NOT NULL          | Company name                                                                    |
+| `domain`           | VARCHAR(255) | NOT NULL, INDEXED | Company domain                                                                  |
+| `website_url`      | VARCHAR(500) | NULLABLE          | Company website URL                                                             |
+| `email`            | VARCHAR(255) | NULLABLE          | Contact email                                                                   |
+| `phone`            | VARCHAR(50)  | NULLABLE          | Contact phone                                                                   |
+| `status`           | ENUM         | NOT NULL, INDEXED | Company status (`pending`, `approved`, `rejected`, `fraudulent`, `revoked`)     |
+| `risk_score`       | INTEGER      | NOT NULL, INDEXED | Current risk score (0-100)                                                      |
+| `analysis_status`  | ENUM         | NOT NULL, INDEXED | Analysis status (`pending`, `in_progress`, `completed`, `failed`, `incomplete`) |
+| `current_step`     | VARCHAR(50)  | NULLABLE          | Current analysis step                                                           |
+| `last_analyzed_at` | TIMESTAMP    | NULLABLE          | Last analysis timestamp                                                         |
+| `is_deleted`       | BOOLEAN      | NOT NULL, INDEXED | Soft delete flag                                                                |
+| `created_at`       | TIMESTAMP    | NOT NULL, INDEXED | Creation timestamp                                                              |
+| `updated_at`       | TIMESTAMP    | NOT NULL          | Last update timestamp                                                           |
 
 **Indexes:**
+
 - Primary key on `id`
 - Index on `domain`
 - Index on `status`
@@ -1138,46 +1204,49 @@ The database consists of four main tables:
 
 #### `company_analyses` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY | Unique analysis identifier |
-| `company_id` | UUID | FOREIGN KEY, INDEXED | Reference to `companies.id` |
-| `version` | INTEGER | NOT NULL | Analysis version number (incremental per company) |
-| `algorithm_version` | VARCHAR(50) | NOT NULL | Algorithm version used |
-| `submitted_data` | JSONB | NOT NULL | Original company data submitted |
-| `discovered_data` | JSONB | NOT NULL | Data discovered from external checks |
-| `signals` | JSONB | NOT NULL | Array of verification signals |
-| `risk_score` | INTEGER | NOT NULL | Calculated risk score (0-100) |
-| `llm_summary` | VARCHAR(2000) | NULLABLE | LLM-generated summary |
-| `llm_details` | VARCHAR(5000) | NULLABLE | LLM-generated detailed analysis |
-| `is_complete` | BOOLEAN | NOT NULL | Whether analysis completed successfully |
-| `failed_checks` | JSONB | NOT NULL | Array of failed check names |
-| `created_at` | TIMESTAMP | NOT NULL, INDEXED | Analysis timestamp |
+| Column              | Type          | Constraints          | Description                                       |
+| ------------------- | ------------- | -------------------- | ------------------------------------------------- |
+| `id`                | UUID          | PRIMARY KEY          | Unique analysis identifier                        |
+| `company_id`        | UUID          | FOREIGN KEY, INDEXED | Reference to `companies.id`                       |
+| `version`           | INTEGER       | NOT NULL             | Analysis version number (incremental per company) |
+| `algorithm_version` | VARCHAR(50)   | NOT NULL             | Algorithm version used                            |
+| `submitted_data`    | JSONB         | NOT NULL             | Original company data submitted                   |
+| `discovered_data`   | JSONB         | NOT NULL             | Data discovered from external checks              |
+| `signals`           | JSONB         | NOT NULL             | Array of verification signals                     |
+| `risk_score`        | INTEGER       | NOT NULL             | Calculated risk score (0-100)                     |
+| `llm_summary`       | VARCHAR(2000) | NULLABLE             | LLM-generated summary                             |
+| `llm_details`       | VARCHAR(5000) | NULLABLE             | LLM-generated detailed analysis                   |
+| `is_complete`       | BOOLEAN       | NOT NULL             | Whether analysis completed successfully           |
+| `failed_checks`     | JSONB         | NOT NULL             | Array of failed check names                       |
+| `created_at`        | TIMESTAMP     | NOT NULL, INDEXED    | Analysis timestamp                                |
 
 **Indexes:**
+
 - Primary key on `id`
 - Foreign key index on `company_id`
 - Index on `created_at`
 
 **Unique Constraint:**
+
 - (`company_id`, `version`) - Ensures unique version numbers per company
 
 #### `documents` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY | Unique document identifier |
-| `company_id` | UUID | FOREIGN KEY, INDEXED | Reference to `companies.id` |
-| `filename` | VARCHAR(255) | NOT NULL | Original filename |
-| `s3_key` | VARCHAR(500) | NOT NULL, UNIQUE | S3 object key |
-| `file_size` | INTEGER | NOT NULL | File size in bytes |
-| `mime_type` | VARCHAR(100) | NOT NULL | MIME type |
-| `uploaded_by` | VARCHAR(255) | NOT NULL | Cognito user ID |
-| `document_type` | VARCHAR(100) | NULLABLE | Document type (e.g., `business_license`) |
-| `description` | VARCHAR(500) | NULLABLE | Document description |
-| `created_at` | TIMESTAMP | NOT NULL, INDEXED | Upload timestamp |
+| Column          | Type         | Constraints          | Description                              |
+| --------------- | ------------ | -------------------- | ---------------------------------------- |
+| `id`            | UUID         | PRIMARY KEY          | Unique document identifier               |
+| `company_id`    | UUID         | FOREIGN KEY, INDEXED | Reference to `companies.id`              |
+| `filename`      | VARCHAR(255) | NOT NULL             | Original filename                        |
+| `s3_key`        | VARCHAR(500) | NOT NULL, UNIQUE     | S3 object key                            |
+| `file_size`     | INTEGER      | NOT NULL             | File size in bytes                       |
+| `mime_type`     | VARCHAR(100) | NOT NULL             | MIME type                                |
+| `uploaded_by`   | VARCHAR(255) | NOT NULL             | Cognito user ID                          |
+| `document_type` | VARCHAR(100) | NULLABLE             | Document type (e.g., `business_license`) |
+| `description`   | VARCHAR(500) | NULLABLE             | Document description                     |
+| `created_at`    | TIMESTAMP    | NOT NULL, INDEXED    | Upload timestamp                         |
 
 **Indexes:**
+
 - Primary key on `id`
 - Foreign key index on `company_id`
 - Unique index on `s3_key`
@@ -1185,16 +1254,17 @@ The database consists of four main tables:
 
 #### `notes` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY | Unique note identifier |
-| `company_id` | UUID | FOREIGN KEY, INDEXED | Reference to `companies.id` |
-| `user_id` | VARCHAR(255) | NOT NULL | Cognito user ID who created note |
-| `content` | TEXT | NOT NULL | Note content |
-| `created_at` | TIMESTAMP | NOT NULL, INDEXED | Creation timestamp |
-| `updated_at` | TIMESTAMP | NOT NULL | Last update timestamp |
+| Column       | Type         | Constraints          | Description                      |
+| ------------ | ------------ | -------------------- | -------------------------------- |
+| `id`         | UUID         | PRIMARY KEY          | Unique note identifier           |
+| `company_id` | UUID         | FOREIGN KEY, INDEXED | Reference to `companies.id`      |
+| `user_id`    | VARCHAR(255) | NOT NULL             | Cognito user ID who created note |
+| `content`    | TEXT         | NOT NULL             | Note content                     |
+| `created_at` | TIMESTAMP    | NOT NULL, INDEXED    | Creation timestamp               |
+| `updated_at` | TIMESTAMP    | NOT NULL             | Last update timestamp            |
 
 **Indexes:**
+
 - Primary key on `id`
 - Foreign key index on `company_id`
 - Index on `created_at`
@@ -1235,11 +1305,13 @@ The entire process runs in a Lambda worker triggered by SQS messages, ensuring i
 When a company is created via `POST /v1/companies`:
 
 1. Company record is inserted into `companies` table with:
+
    - `status = "pending"`
    - `analysis_status = "pending"`
    - `risk_score = 0`
 
 2. A message is enqueued to SQS with:
+
    ```json
    {
      "company_id": "uuid",
@@ -1263,11 +1335,13 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Verify domain registration information
 
 **Process:**
+
 - Queries WHOIS service for domain registration data
 - Extracts: domain age, registrar, creation date, privacy status
 - Rate limited: 1 request/second
 
 **Output:**
+
 ```json
 {
   "domain_age_days": 365,
@@ -1284,11 +1358,13 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Verify domain resolves and get IP addresses
 
 **Process:**
+
 - Resolves domain to IP addresses (A records)
 - Retrieves nameservers
 - Rate limited: 5 requests/second
 
 **Output:**
+
 ```json
 {
   "resolves": true,
@@ -1304,17 +1380,17 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Verify email domain has mail exchange records
 
 **Process:**
+
 - Extracts email domain from company email (or uses company domain)
 - Queries MX records for email domain
 - Rate limited: No specific limit (DNS-based)
 
 **Output:**
+
 ```json
 {
   "has_mx_records": true,
-  "mx_records": [
-    {"priority": 10, "exchange": "mail.example.com"}
-  ],
+  "mx_records": [{ "priority": 10, "exchange": "mail.example.com" }],
   "email_configured": true
 }
 ```
@@ -1326,12 +1402,14 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Verify website is reachable and extract metadata
 
 **Process:**
+
 - Fetches company website URL via HTTP
 - Extracts: HTTP status code, page title, meta description, content length
 - Rate limited: 10 requests/second
 - Timeout: 30 seconds
 
 **Output:**
+
 ```json
 {
   "reachable": true,
@@ -1349,11 +1427,13 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Validate and normalize phone number format
 
 **Process:**
+
 - Parses phone number format
 - Validates against international formats
 - Extracts region/country code
 
 **Output:**
+
 ```json
 {
   "normalized": "+15551234567",
@@ -1369,11 +1449,13 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Generate verification signals by comparing submitted vs discovered data
 
 **Process:**
+
 - Compares each data point (domain age, email match, website reachability, etc.)
 - Generates signals with status (`ok`, `suspicious`, `mismatch`, `warning`, `failed`)
 - Assigns weights to signals based on severity
 
 **Example Signals:**
+
 ```json
 [
   {
@@ -1405,10 +1487,12 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Calculate initial risk score from signals
 
 **Process:**
+
 - Sums weights of all signals with `status != "ok"` and `weight > 0`
 - Clamps result between 0 and 100
 
 **Rule Weights:**
+
 - `domain_age_lt_1_year`: 20 points
 - `whois_privacy_enabled`: 10 points
 - `address_mismatch`: 15 points
@@ -1418,6 +1502,7 @@ SQS triggers the Lambda worker, which:
 - `no_mx_records`: 15 points
 
 **Example:**
+
 - Domain age < 1 year: +20
 - Website unreachable: +25
 - **Rule Score: 45**
@@ -1427,13 +1512,16 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Provide qualitative analysis and score adjustment
 
 **Process:**
+
 1. Builds structured prompt with:
+
    - Submitted data
    - Discovered data
    - Generated signals
    - Current rule score
 
 2. Calls OpenAI GPT-4 API with:
+
    - Model: `gpt-4`
    - Temperature: 0.3 (for consistency)
    - Max tokens: 1000
@@ -1442,6 +1530,7 @@ SQS triggers the Lambda worker, which:
 3. Rate limited: 3 requests/second with exponential backoff
 
 4. Parses JSON response:
+
    ```json
    {
      "llm_summary": "Company appears legitimate with minor concerns...",
@@ -1459,11 +1548,13 @@ SQS triggers the Lambda worker, which:
 **Purpose**: Combine rule-based score with LLM adjustment
 
 **Formula:**
+
 ```
 final_score = clamp(rule_score + llm_score_adjustment, 0, 100)
 ```
 
 **Example:**
+
 - Rule Score: 45
 - LLM Adjustment: -5
 - **Final Score: 40**
@@ -1471,8 +1562,10 @@ final_score = clamp(rule_score + llm_score_adjustment, 0, 100)
 #### 12. Save Analysis
 
 **Process:**
+
 1. Determines next version number (increments from latest analysis)
 2. Inserts new record into `company_analyses` table with:
+
    - All discovered data
    - All signals
    - Final risk score
@@ -1488,6 +1581,7 @@ final_score = clamp(rule_score + llm_score_adjustment, 0, 100)
 #### 13. Error Handling
 
 If any check fails:
+
 - Error is logged with correlation ID
 - Check is marked as failed in `failed_checks` array
 - Analysis continues with other checks
@@ -1498,11 +1592,13 @@ If any check fails:
 The risk score is calculated using a **hybrid approach**:
 
 1. **Rule-Based Score** (0-100):
+
    - Sum of signal weights
    - Deterministic, reproducible
    - Fast calculation
 
 2. **LLM Adjustment** (-20 to +20):
+
    - Qualitative analysis from GPT-4
    - Considers context and patterns
    - Can adjust score up or down
@@ -1512,6 +1608,7 @@ The risk score is calculated using a **hybrid approach**:
    - Combines both approaches
 
 **Risk Levels:**
+
 - **0-30**: Low Risk (Green) - Auto-approval eligible
 - **31-69**: Moderate Risk (Yellow) - Requires review
 - **70-100**: High Risk (Red) - Requires investigation
@@ -1521,6 +1618,7 @@ The risk score is calculated using a **hybrid approach**:
 Signals are generated by comparing submitted data with discovered data:
 
 **Signal Statuses:**
+
 - `ok`: No issues detected
 - `suspicious`: Potential concern
 - `mismatch`: Data doesn't match
@@ -1528,11 +1626,13 @@ Signals are generated by comparing submitted data with discovered data:
 - `failed`: Check failed
 
 **Signal Severities:**
+
 - `low`: Informational
 - `medium`: Moderate concern
 - `high`: Significant concern
 
 **Signal Fields:**
+
 - `domain_age`: Domain registration age
 - `whois_privacy`: WHOIS privacy protection
 - `dns_resolution`: DNS resolution status
@@ -1546,10 +1646,12 @@ Signals are generated by comparing submitted data with discovered data:
 The LLM analysis provides:
 
 1. **Summary** (2-3 sentences):
+
    - Executive summary of risk assessment
    - Key concerns or positive indicators
 
 2. **Details** (paragraph):
+
    - Detailed reasoning
    - Notable patterns
    - Contextual factors
@@ -1568,11 +1670,13 @@ The LLM analysis provides:
 #### Backend API Not Starting
 
 **Symptoms:**
+
 - `uvicorn` fails to start
 - Database connection errors
 - Port already in use
 
 **Solutions:**
+
 1. Check database connection string in `.env`
 2. Verify PostgreSQL is running: `pg_isready`
 3. Check port 8000 is available: `lsof -i :8000`
@@ -1581,17 +1685,21 @@ The LLM analysis provides:
 #### Authentication Failures
 
 **Symptoms:**
+
 - 401 Unauthorized errors
 - Token validation failures
 - Cognito errors
 
 **Solutions:**
+
 1. Verify Cognito configuration in `.env`:
+
    - `COGNITO_USER_POOL_ID`
    - `COGNITO_APP_CLIENT_ID`
    - `COGNITO_ISSUER`
 
 2. Check token is not expired:
+
    ```bash
    # Decode JWT (without verification)
    echo $TOKEN | cut -d. -f2 | base64 -d | jq
@@ -1605,11 +1713,13 @@ The LLM analysis provides:
 #### Analysis Not Running
 
 **Symptoms:**
+
 - Companies stuck in `pending` status
 - No Lambda invocations
 - SQS messages not processing
 
 **Solutions:**
+
 1. Check SQS queue URL in `.env`
 2. Verify Lambda function is deployed and has correct IAM permissions
 3. Check CloudWatch logs for Lambda errors
@@ -1621,11 +1731,13 @@ The LLM analysis provides:
 #### Database Connection Issues
 
 **Symptoms:**
+
 - Connection timeout errors
 - "Connection refused" errors
 - RDS endpoint not reachable
 
 **Solutions:**
+
 1. Verify RDS endpoint is correct
 2. Check security group allows connections from your IP
 3. Verify database credentials in Secrets Manager
@@ -1637,11 +1749,13 @@ The LLM analysis provides:
 #### Frontend Build Failures
 
 **Symptoms:**
+
 - TypeScript errors
 - Build timeouts
 - Missing environment variables
 
 **Solutions:**
+
 1. Check all `NEXT_PUBLIC_*` variables are set in `.env.local`
 2. Clear Next.js cache: `rm -rf .next`
 3. Verify Node.js version: `node --version` (should be 18+)
@@ -1652,15 +1766,17 @@ The LLM analysis provides:
 #### Enable Debug Logging
 
 **Backend:**
+
 ```python
 # In backend/.env
 LOG_LEVEL=DEBUG
 ```
 
 **Frontend:**
+
 ```typescript
 // In browser console
-localStorage.setItem('debug', 'true')
+localStorage.setItem("debug", "true");
 ```
 
 #### Check CloudWatch Logs
@@ -1820,6 +1936,7 @@ terraform state list  # List all resources
 #### Horizontal Scaling
 
 **API:**
+
 - ECS Service auto-scaling based on:
   - CPU utilization > 70%
   - Memory utilization > 80%
@@ -1827,11 +1944,13 @@ terraform state list  # List all resources
 - Scales from 1 to 10 tasks (configurable)
 
 **Lambda:**
+
 - Automatically scales based on SQS queue depth
 - Processes up to 5 messages per invocation (batch)
 - Can handle thousands of concurrent analyses
 
 **Database:**
+
 - Vertical scaling: Increase instance size
 - Read replicas: Can add for read-heavy workloads
 - Connection pooling: SQLAlchemy connection pool (default: 5-10)
@@ -1879,46 +1998,55 @@ terraform state list  # List all resources
 ### Current Limitations
 
 1. **Single Operator Role**
+
    - All operators have the same permissions
    - No role-based access control (RBAC)
    - Future: Admin, Reviewer, Viewer roles
 
 2. **No Real-time Updates**
+
    - Frontend polls analysis status every 5 seconds
    - No WebSocket/SSE for real-time updates
    - Future: WebSocket support for live updates
 
 3. **Limited Analysis Customization**
+
    - Analysis algorithm is fixed (version 1.0.0)
    - Cannot customize rule weights per company type
    - Future: Configurable analysis profiles
 
 4. **No Bulk Operations**
+
    - Cannot bulk update company statuses
    - Cannot bulk export reports
    - Future: Bulk operations API
 
 5. **Document Size Limits**
+
    - S3 presigned URL uploads limited by S3 (5 GB max)
    - No client-side chunking for large files
    - Future: Multipart upload support
 
 6. **Analysis Timeout**
+
    - Lambda timeout: 15 minutes max
    - Very complex analyses may timeout
    - Future: Step Functions for long-running analyses
 
 7. **No Analysis Scheduling**
+
    - Cannot schedule periodic reanalysis
    - Manual reanalysis only
    - Future: Scheduled analysis jobs
 
 8. **Limited Export Formats**
+
    - Only PDF and JSON exports
    - No CSV, Excel, or other formats
    - Future: Additional export formats
 
 9. **No Email Notifications**
+
    - No email alerts for analysis completion
    - No email notifications for status changes
    - Future: Email notification system
@@ -1931,16 +2059,19 @@ terraform state list  # List all resources
 ### Technical Debt
 
 1. **Test Coverage**
+
    - Backend: ~60% coverage
    - Frontend: Limited unit tests
    - Future: Increase to 80%+ coverage
 
 2. **Documentation**
+
    - API documentation in code (OpenAPI/Swagger)
    - No separate API documentation site
    - Future: Dedicated API docs site
 
 3. **Monitoring**
+
    - Basic CloudWatch metrics
    - No custom dashboards
    - Future: Comprehensive monitoring dashboard
@@ -1980,6 +2111,7 @@ Currently, the API does not implement explicit rate limiting. However, the follo
 - **Retry**: Exponential backoff on rate limit errors
 
 **Configuration:**
+
 ```python
 OPENAI_RATE_LIMIT=3  # requests per second
 ```
@@ -1992,6 +2124,7 @@ OPENAI_RATE_LIMIT=3  # requests per second
 - **Retry**: Exponential backoff
 
 **Configuration:**
+
 ```python
 WHOIS_RATE_LIMIT=1  # requests per second
 ```
@@ -2004,6 +2137,7 @@ WHOIS_RATE_LIMIT=1  # requests per second
 - **No Retry**: DNS failures are logged but not retried
 
 **Configuration:**
+
 ```python
 DNS_RATE_LIMIT=5  # requests per second
 ```
@@ -2016,6 +2150,7 @@ DNS_RATE_LIMIT=5  # requests per second
 - **Retry**: 3 attempts with exponential backoff
 
 **Configuration:**
+
 ```python
 HTTP_RATE_LIMIT=10  # requests per second
 ```
@@ -2031,7 +2166,7 @@ class TokenBucketRateLimiter:
         self.burst = burst or rate  # Max tokens
         self.tokens = self.burst  # Current tokens
         self.last_update = time.time()
-    
+
     def acquire(self, tokens: int = 1, block: bool = True):
         # Add tokens based on elapsed time
         # Remove tokens if available
@@ -2039,12 +2174,14 @@ class TokenBucketRateLimiter:
 ```
 
 **Features:**
+
 - Thread-safe (uses locks)
 - Configurable rate and burst
 - Blocking and non-blocking modes
 - Timeout support
 
 **Usage:**
+
 ```python
 limiter = get_rate_limiter('openai', rate=3)
 limiter.wait()  # Block until token available
@@ -2074,19 +2211,19 @@ All API errors follow a consistent format:
 
 ### HTTP Status Codes
 
-| Code | Meaning | Usage |
-|------|---------|-------|
-| 200 | OK | Successful GET, PATCH, POST |
-| 201 | Created | Successful POST (resource created) |
-| 204 | No Content | Successful DELETE |
-| 400 | Bad Request | Invalid request body, validation errors |
-| 401 | Unauthorized | Missing or invalid authentication token |
-| 403 | Forbidden | Valid token but insufficient permissions |
-| 404 | Not Found | Resource doesn't exist |
-| 409 | Conflict | Resource conflict (e.g., duplicate domain) |
-| 422 | Unprocessable Entity | Validation errors in request body |
-| 500 | Internal Server Error | Unexpected server error |
-| 503 | Service Unavailable | Service temporarily unavailable |
+| Code | Meaning               | Usage                                      |
+| ---- | --------------------- | ------------------------------------------ |
+| 200  | OK                    | Successful GET, PATCH, POST                |
+| 201  | Created               | Successful POST (resource created)         |
+| 204  | No Content            | Successful DELETE                          |
+| 400  | Bad Request           | Invalid request body, validation errors    |
+| 401  | Unauthorized          | Missing or invalid authentication token    |
+| 403  | Forbidden             | Valid token but insufficient permissions   |
+| 404  | Not Found             | Resource doesn't exist                     |
+| 409  | Conflict              | Resource conflict (e.g., duplicate domain) |
+| 422  | Unprocessable Entity  | Validation errors in request body          |
+| 500  | Internal Server Error | Unexpected server error                    |
+| 503  | Service Unavailable   | Service temporarily unavailable            |
 
 ### Common Error Codes
 
@@ -2141,16 +2278,19 @@ def api_request_with_retry(url, headers, max_retries=3):
 #### Lambda Worker Retries
 
 **SQS Retries:**
+
 - **Visibility Timeout**: 5 minutes (configurable)
 - **Max Receives**: 3 attempts
 - **Dead Letter Queue**: Failed messages after 3 attempts
 
 **External API Retries:**
+
 - **Max Retries**: 3 attempts (configurable)
 - **Backoff**: Exponential (1s, 2s, 4s)
 - **Rate Limit Handling**: Special handling for 429 errors
 
 **Example:**
+
 ```python
 for attempt in range(max_retries):
     try:
@@ -2201,29 +2341,29 @@ If some checks fail during analysis:
 
 ### Backend Environment Variables
 
-| Variable | Description | Required | Source |
-|----------|-------------|----------|--------|
-| `DB_URL` | PostgreSQL connection string | Yes | Terraform output or local DB |
-| `COGNITO_USER_POOL_ID` | Cognito User Pool ID | Yes | Terraform output |
-| `COGNITO_APP_CLIENT_ID` | Cognito App Client ID | Yes | Terraform output |
-| `COGNITO_REGION` | AWS region for Cognito | Yes | `us-east-1` |
-| `COGNITO_ISSUER` | Cognito issuer URL | Optional | Derived from region + pool ID |
-| `SQS_QUEUE_URL` | SQS queue URL for analysis jobs | Yes | Terraform output |
-| `S3_BUCKET_NAME` | S3 bucket for documents | Yes | Terraform output |
-| `OPENAI_API_KEY` | OpenAI API key for LLM analysis | Optional | Secrets Manager or env var |
-| `AWS_REGION` | AWS region | Yes | `us-east-1` |
-| `ENVIRONMENT` | Environment name | Yes | `development`, `dev`, or `prod` |
-| `API_VERSION` | API version | Yes | `1.0.0` |
-| `LOG_LEVEL` | Logging level | Optional | `INFO`, `DEBUG`, `WARNING`, `ERROR` |
+| Variable                | Description                     | Required | Source                              |
+| ----------------------- | ------------------------------- | -------- | ----------------------------------- |
+| `DB_URL`                | PostgreSQL connection string    | Yes      | Terraform output or local DB        |
+| `COGNITO_USER_POOL_ID`  | Cognito User Pool ID            | Yes      | Terraform output                    |
+| `COGNITO_APP_CLIENT_ID` | Cognito App Client ID           | Yes      | Terraform output                    |
+| `COGNITO_REGION`        | AWS region for Cognito          | Yes      | `us-east-1`                         |
+| `COGNITO_ISSUER`        | Cognito issuer URL              | Optional | Derived from region + pool ID       |
+| `SQS_QUEUE_URL`         | SQS queue URL for analysis jobs | Yes      | Terraform output                    |
+| `S3_BUCKET_NAME`        | S3 bucket for documents         | Yes      | Terraform output                    |
+| `OPENAI_API_KEY`        | OpenAI API key for LLM analysis | Optional | Secrets Manager or env var          |
+| `AWS_REGION`            | AWS region                      | Yes      | `us-east-1`                         |
+| `ENVIRONMENT`           | Environment name                | Yes      | `development`, `dev`, or `prod`     |
+| `API_VERSION`           | API version                     | Yes      | `1.0.0`                             |
+| `LOG_LEVEL`             | Logging level                   | Optional | `INFO`, `DEBUG`, `WARNING`, `ERROR` |
 
 ### Frontend Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | Yes |
-| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Cognito User Pool ID | Yes |
-| `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Cognito App Client ID | Yes |
-| `NEXT_PUBLIC_COGNITO_REGION` | AWS region for Cognito | Yes |
+| Variable                           | Description            | Required |
+| ---------------------------------- | ---------------------- | -------- |
+| `NEXT_PUBLIC_API_URL`              | Backend API URL        | Yes      |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Cognito User Pool ID   | Yes      |
+| `NEXT_PUBLIC_COGNITO_CLIENT_ID`    | Cognito App Client ID  | Yes      |
+| `NEXT_PUBLIC_COGNITO_REGION`       | AWS region for Cognito | Yes      |
 
 **Note:** In production, sensitive values are managed via AWS Secrets Manager.
 
@@ -2249,25 +2389,26 @@ The project uses GitHub Actions for automated deployments. Workflows are located
 
 Configure these in your GitHub repository settings (Settings → Secrets and variables → Actions):
 
-| Secret | Description |
-|--------|-------------|
-| `AWS_ACCESS_KEY_ID` | AWS access key for CI/CD IAM user |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key for CI/CD IAM user |
-| `API_URL_DEV` | Dev API URL (from `terraform output api_url`) |
-| `API_URL_PROD` | Prod API URL |
-| `COGNITO_POOL_ID_DEV` | Dev Cognito User Pool ID |
-| `COGNITO_POOL_ID_PROD` | Prod Cognito User Pool ID |
-| `COGNITO_CLIENT_ID_DEV` | Dev Cognito App Client ID |
-| `COGNITO_CLIENT_ID_PROD` | Prod Cognito App Client ID |
-| `COGNITO_REGION_DEV` | Cognito region (usually `us-east-1`) |
-| `COGNITO_REGION_PROD` | Cognito region for prod |
-| `CLOUDFRONT_DISTRIBUTION_ID_DEV` | Dev CloudFront distribution ID |
-| `CLOUDFRONT_DISTRIBUTION_ID_PROD` | Prod CloudFront distribution ID |
-| `FRONTEND_URL_PROD` | Prod frontend URL (for workflow metadata) |
+| Secret                            | Description                                   |
+| --------------------------------- | --------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`               | AWS access key for CI/CD IAM user             |
+| `AWS_SECRET_ACCESS_KEY`           | AWS secret key for CI/CD IAM user             |
+| `API_URL_DEV`                     | Dev API URL (from `terraform output api_url`) |
+| `API_URL_PROD`                    | Prod API URL                                  |
+| `COGNITO_POOL_ID_DEV`             | Dev Cognito User Pool ID                      |
+| `COGNITO_POOL_ID_PROD`            | Prod Cognito User Pool ID                     |
+| `COGNITO_CLIENT_ID_DEV`           | Dev Cognito App Client ID                     |
+| `COGNITO_CLIENT_ID_PROD`          | Prod Cognito App Client ID                    |
+| `COGNITO_REGION_DEV`              | Cognito region (usually `us-east-1`)          |
+| `COGNITO_REGION_PROD`             | Cognito region for prod                       |
+| `CLOUDFRONT_DISTRIBUTION_ID_DEV`  | Dev CloudFront distribution ID                |
+| `CLOUDFRONT_DISTRIBUTION_ID_PROD` | Prod CloudFront distribution ID               |
+| `FRONTEND_URL_PROD`               | Prod frontend URL (for workflow metadata)     |
 
 ### IAM Permissions for CI/CD
 
 The CI/CD IAM user needs permissions for:
+
 - ECR: `GetAuthorizationToken`, `BatchGetImage`, `PutImage`
 - ECS: `UpdateService`, `DescribeServices`, `DescribeTaskDefinition`
 - Lambda: `UpdateFunctionCode`, `GetFunction`
@@ -2289,6 +2430,7 @@ cd backend
 ```
 
 This script:
+
 1. Fetches ECR repository URL from Terraform outputs
 2. Authenticates Docker with ECR
 3. Builds the Docker image
@@ -2335,6 +2477,7 @@ aws ecs update-service \
 #### Deployment Steps
 
 1. **Get Terraform outputs:**
+
    ```bash
    cd infra
    terraform output frontend_bucket_name
@@ -2345,6 +2488,7 @@ aws ecs update-service \
    ```
 
 2. **Build frontend:**
+
    ```bash
    cd ../frontend
    npm install
@@ -2352,6 +2496,7 @@ aws ecs update-service \
    ```
 
 3. **Sync to S3:**
+
    ```bash
    aws s3 sync out/ s3://<bucket-name>/ --delete
    ```
@@ -2370,6 +2515,7 @@ aws ecs update-service \
 ```
 
 This script handles:
+
 - Building with correct environment variables
 - Syncing to S3 with proper cache headers
 - CloudFront cache invalidation
