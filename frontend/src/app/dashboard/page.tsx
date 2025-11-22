@@ -404,7 +404,9 @@ export default function DashboardPage() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [refreshToken, isAuthenticated, isLoggingOut]);
+    // Only depend on refreshToken - isAuthenticated and isLoggingOut are checked inside
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshToken]);
 
   const handleDeleteClick = useCallback(
     (company: Company) => {
