@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import sqlalchemy as sa
 from sqlalchemy import inspect as sa_inspect
 
 # Basic logging to stderr before structured logging is set up
@@ -191,17 +192,42 @@ def on_startup() -> None:
             inspector = sa_inspect(connection)
             has_version_table = inspector.has_table("alembic_version")
             existing_tables = inspector.get_table_names()
+            
+            # Check for orphaned revision (migration file was deleted)
+            current_rev = None
+            if has_version_table:
+                result = connection.execute(sa.text("SELECT version_num FROM alembic_version"))
+                row = result.fetchone()
+                if row:
+                    current_rev = row[0]
+                    logger.info(f"Current alembic revision: {current_rev}")
+
+        # Known valid revisions
+        valid_revisions = {
+            "001_initial_schema",
+            "002_update_status_enums",
+            "003_add_status_enum_values",
+        }
 
         if not has_version_table:
             if existing_tables:
                 logger.warning(
-                    "Alembic version table missing but tables exist; stamping to 001_initial_schema",
+                    "Alembic version table missing but tables exist; stamping to 003_add_status_enum_values",
                     extra={"tables": existing_tables},
                 )
-                command.stamp(alembic_cfg, "001_initial_schema")
+                command.stamp(alembic_cfg, "003_add_status_enum_values")
             else:
                 logger.info("Alembic version table missing and no tables found; stamping base")
                 command.stamp(alembic_cfg, "base")
+        elif current_rev and current_rev not in valid_revisions:
+            # Orphaned revision - stamp to latest valid
+            logger.warning(
+                f"Orphaned alembic revision {current_rev}; re-stamping to 003_add_status_enum_values"
+            )
+            with db_engine.connect() as conn:
+                conn.execute(sa.text("DELETE FROM alembic_version"))
+                conn.commit()
+            command.stamp(alembic_cfg, "003_add_status_enum_values")
 
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations complete")
