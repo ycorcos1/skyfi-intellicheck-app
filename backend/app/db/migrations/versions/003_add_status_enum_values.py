@@ -2,6 +2,7 @@
 Ensure company and analysis status enums contain required values.
 """
 from alembic import op
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "003_add_status_enum_values"
@@ -10,17 +11,22 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
-    # Company status enum must include all four values
-    op.execute("ALTER TYPE companystatus ADD VALUE IF NOT EXISTS 'pending'")
-    op.execute("ALTER TYPE companystatus ADD VALUE IF NOT EXISTS 'approved'")
-    op.execute("ALTER TYPE companystatus ADD VALUE IF NOT EXISTS 'suspicious'")
-    op.execute("ALTER TYPE companystatus ADD VALUE IF NOT EXISTS 'fraudulent'")
+def _add_enum_value(enum_name: str, value: str) -> None:
+    ctx = op.get_context()
+    bind = op.get_bind()
+    statement = sa.text(
+        f"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS :value"
+    ).bindparams(value=value)
+    with ctx.autocommit_block():
+        bind.execute(statement)
 
-    # Analysis status enum must include the simplified states
-    op.execute("ALTER TYPE analysisstatus ADD VALUE IF NOT EXISTS 'pending'")
-    op.execute("ALTER TYPE analysisstatus ADD VALUE IF NOT EXISTS 'in_progress'")
-    op.execute("ALTER TYPE analysisstatus ADD VALUE IF NOT EXISTS 'complete'")
+
+def upgrade() -> None:
+    for value in ("pending", "approved", "suspicious", "fraudulent"):
+        _add_enum_value("companystatus", value)
+
+    for value in ("pending", "in_progress", "complete"):
+        _add_enum_value("analysisstatus", value)
 
 
 def downgrade() -> None:
