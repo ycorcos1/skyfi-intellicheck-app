@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -31,13 +31,22 @@ class Company(Base):
     email = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)
     
-    # Status fields - use String to avoid enum type mismatches
-    # Values are validated by the enum classes in application code
-    status = Column(String(50), default=CompanyStatus.PENDING.value, nullable=False, index=True)
+    # Status fields - reuse existing PostgreSQL enum types
+    status = Column(
+        ENUM(CompanyStatus, name="companystatus", create_type=False),
+        default=CompanyStatus.PENDING,
+        nullable=False,
+        index=True,
+    )
     risk_score = Column(Integer, default=0, nullable=False, index=True)
     
     # Analysis tracking fields
-    analysis_status = Column(String(50), default=AnalysisStatus.PENDING.value, nullable=False, index=True)
+    analysis_status = Column(
+        ENUM(AnalysisStatus, name="analysisstatus", create_type=False),
+        default=AnalysisStatus.PENDING,
+        nullable=False,
+        index=True,
+    )
     current_step = Column(String(50), nullable=True)  # whois|dns|mx_validation|website_scrape|llm_processing|complete
     last_analyzed_at = Column(DateTime(timezone=True), nullable=True)
     
