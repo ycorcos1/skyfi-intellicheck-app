@@ -252,16 +252,14 @@ export default function SandboxPage() {
           <div className={styles.badgeGroup}>
             <Badge variant="approved">Approved</Badge>
             <Badge variant="pending">Pending</Badge>
+            <Badge variant="suspicious">Suspicious</Badge>
             <Badge variant="fraudulent">Fraudulent</Badge>
-            <Badge variant="rejected">Rejected</Badge>
-            <Badge variant="revoked">Revoked</Badge>
           </div>
           <div className={styles.badgeGroup}>
             <Badge variant="analysis-pending">Pending</Badge>
             <Badge variant="analysis-in-progress">In Progress</Badge>
-            <Badge variant="analysis-completed">Completed</Badge>
-            <Badge variant="analysis-failed">Failed</Badge>
-            <Badge variant="analysis-incomplete">Incomplete</Badge>
+            <Badge variant="analysis-complete">Complete</Badge>
+            <Badge variant="analysis-warning">Complete (Issues)</Badge>
           </div>
         </section>
 
