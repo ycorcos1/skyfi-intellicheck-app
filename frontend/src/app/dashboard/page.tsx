@@ -404,43 +404,47 @@ export default function DashboardPage() {
     loadCompaniesRef.current = loadCompanies;
   }, [loadCompanies]);
 
+  // Consolidated effect to handle both refreshToken and pagination changes
+  // This prevents conflicts between multiple effects trying to load simultaneously
   useEffect(() => {
-    // Only load companies if authenticated and not logging out
-    // Add a delay to ensure auth state is stable and prevent race conditions
-    // Also check if refreshToken actually changed to prevent unnecessary reloads
-    // On initial mount (refreshToken === 0 and lastRefreshTokenRef.current === 0), allow load
-    const shouldLoad = refreshToken !== lastRefreshTokenRef.current || 
-                      (refreshToken === 0 && lastRefreshTokenRef.current === 0);
-    
-    if (shouldLoad && isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+    if (!isAuthenticated || isLoggingOut || isLoadingRef.current || !loadCompaniesRef.current) {
+      return;
+    }
+
+    const refreshTokenChanged = refreshToken !== lastRefreshTokenRef.current;
+    const pageChanged = currentPage !== lastPageRef.current;
+    const isInitialLoad = refreshToken === 0 && lastRefreshTokenRef.current === 0;
+
+    // Determine if we should load
+    let shouldLoad = false;
+    let updateRefs = false;
+
+    if (refreshTokenChanged || isInitialLoad) {
+      // RefreshToken change takes priority (manual refresh, create, delete, etc.)
+      shouldLoad = true;
+      updateRefs = true;
       lastRefreshTokenRef.current = refreshToken;
+      // Also update page ref to prevent pagination effect from triggering
+      lastPageRef.current = currentPage;
+    } else if (pageChanged) {
+      // Only load on page change if refreshToken hasn't changed
+      shouldLoad = true;
+      updateRefs = true;
+      lastPageRef.current = currentPage;
+    }
+
+    if (shouldLoad && updateRefs) {
+      // Use a small delay to batch state updates and prevent rapid-fire calls
       const timer = setTimeout(() => {
-        // Double-check we're still authenticated before loading
-        if (isAuthenticated && !isLoggingOut && loadCompaniesRef.current && !isLoadingRef.current) {
+        if (loadCompaniesRef.current && !isLoadingRef.current && isAuthenticated && !isLoggingOut) {
           void loadCompaniesRef.current();
         }
-      }, 500);
+      }, refreshTokenChanged || isInitialLoad ? 100 : 0);
       return () => clearTimeout(timer);
     }
-    // Only depend on refreshToken - isAuthenticated and isLoggingOut are checked inside
+    // Only depend on refreshToken and currentPage - other values checked inside
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshToken]);
-
-  // Load companies when page changes (pagination)
-  useEffect(() => {
-    // Only load if page actually changed and we're authenticated
-    // Also check that refreshToken hasn't changed (to avoid double-loading)
-    const shouldLoad = currentPage !== lastPageRef.current && 
-                      refreshToken === lastRefreshTokenRef.current;
-    
-    if (shouldLoad && isAuthenticated && !isLoggingOut && !isLoadingRef.current && loadCompaniesRef.current) {
-      // Update ref immediately to prevent re-triggering if this effect runs again
-      lastPageRef.current = currentPage;
-      void loadCompaniesRef.current();
-    }
-    // Only depend on currentPage - other values are checked inside
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [refreshToken, currentPage]);
 
   const handleDeleteClick = useCallback(
     (company: Company) => {
