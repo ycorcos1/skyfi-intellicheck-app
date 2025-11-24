@@ -1218,6 +1218,34 @@ async def bulk_upload_companies(
             db.add(company)
             db.flush()  # Get the company ID
             
+            # Enqueue analysis if no analysis data provided (company needs to be analyzed)
+            if not analysis_data:
+                try:
+                    sqs_service = get_sqs_service()
+                    sqs_response = sqs_service.enqueue_analysis(
+                        company_id=str(company.id),
+                        retry_mode="full",
+                        correlation_id=correlation_id,
+                    )
+                    logger.debug(
+                        f"Enqueued analysis for bulk-uploaded company {company.id}",
+                        extra={
+                            "company_id": str(company.id),
+                            "sqs_message_id": sqs_response.get("MessageId", "unknown"),
+                            "correlation_id": correlation_id,
+                        }
+                    )
+                except Exception as sqs_exc:
+                    # Log error but don't fail the company creation
+                    logger.warning(
+                        f"Failed to enqueue analysis for company {company.id}",
+                        extra={
+                            "company_id": str(company.id),
+                            "error": str(sqs_exc),
+                            "correlation_id": correlation_id,
+                        }
+                    )
+            
             # Create analysis if provided
             if analysis_data:
                 # Get the next version number
