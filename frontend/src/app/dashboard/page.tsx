@@ -363,7 +363,9 @@ export default function DashboardPage() {
       );
 
       if (response.pages > 0 && currentPage > response.pages) {
-        setCurrentPage(response.pages);
+        const adjustedPage = response.pages;
+        lastPageRef.current = adjustedPage; // Update ref to prevent pagination effect from triggering
+        setCurrentPage(adjustedPage);
         return;
       }
 
@@ -427,15 +429,16 @@ export default function DashboardPage() {
   // Load companies when page changes (pagination)
   useEffect(() => {
     // Only load if page actually changed and we're authenticated
-    const shouldLoad = currentPage !== lastPageRef.current;
+    // Also check that refreshToken hasn't changed (to avoid double-loading)
+    const shouldLoad = currentPage !== lastPageRef.current && 
+                      refreshToken === lastRefreshTokenRef.current;
     
-    if (shouldLoad && isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+    if (shouldLoad && isAuthenticated && !isLoggingOut && !isLoadingRef.current && loadCompaniesRef.current) {
+      // Update ref immediately to prevent re-triggering if this effect runs again
       lastPageRef.current = currentPage;
-      if (loadCompaniesRef.current) {
-        void loadCompaniesRef.current();
-      }
+      void loadCompaniesRef.current();
     }
-    // Only depend on currentPage - isAuthenticated and isLoggingOut are checked inside
+    // Only depend on currentPage - other values are checked inside
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
