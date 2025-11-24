@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.company import Company, AnalysisStatus
+from app.db.schema_utils import ensure_status_schema
 from app.models.analysis import CompanyAnalysis
 from worker.config import WorkerConfig
 
@@ -66,6 +67,9 @@ class DatabaseManager:
                 echo=False
             )
             self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+
+            # Ensure enum values exist before the worker starts processing
+            ensure_status_schema(self.engine, logger=logger)
             
             logger.info("Database connection initialized successfully")
             

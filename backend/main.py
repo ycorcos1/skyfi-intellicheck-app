@@ -22,6 +22,7 @@ try:
         get_logger
     )
     from app.core.metrics import get_metrics_client
+    from app.db.schema_utils import ensure_status_schema
     from config import get_settings
 
     print("Imports successful", file=sys.stderr)
@@ -157,11 +158,17 @@ def on_startup() -> None:
         }
     )
     
-    # Run database migrations
+    # Ensure database schema supports the simplified status model
+    try:
+        from app.core.database import engine
+        ensure_status_schema(engine, logger=logger)
+    except Exception:  # pragma: no cover - defensive logging
+        logger.error("Failed to ensure status schema", exc_info=True)
+
+    # Run database migrations (best effort; do not crash app if these fail)
     try:
         from alembic import command
         from alembic.config import Config
-        from app.core.database import engine
         from sqlalchemy.engine import Engine
 
         logger.info("Preparing to run database migrations...")
@@ -198,9 +205,8 @@ def on_startup() -> None:
 
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations complete")
-    except Exception as e:
+    except Exception:
         logger.error("Failed to run database migrations", exc_info=True)
-        raise
 
 
 @app.get("/", include_in_schema=False)
