@@ -35,7 +35,7 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
                 autocommit_conn.execute(text(stmt))
 
             # Capture existing enum labels to avoid referencing removed values
-            company_labels = {
+            company_labels = [
                 row[0]
                 for row in autocommit_conn.execute(
                     text(
@@ -47,8 +47,8 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
                         """
                     )
                 )
-            }
-            analysis_labels = {
+            ]
+            analysis_labels = [
                 row[0]
                 for row in autocommit_conn.execute(
                     text(
@@ -60,9 +60,14 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
                         """
                     )
                 )
-            }
+            ]
 
-            if {"rejected", "revoked"} & company_labels:
+            has_company_pending = "pending" in company_labels
+            has_rejected_values = any(label in ("rejected", "revoked") for label in company_labels)
+            has_analysis_pending = "pending" in analysis_labels
+            has_legacy_analysis = any(label in ("completed", "failed", "incomplete") for label in analysis_labels)
+
+            if has_company_pending and has_rejected_values:
                 autocommit_conn.execute(
                     text(
                         "UPDATE companies SET status = 'suspicious' "
@@ -70,7 +75,7 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
                     )
                 )
 
-            if {"completed", "failed", "incomplete"} & analysis_labels:
+            if has_analysis_pending and has_legacy_analysis:
                 autocommit_conn.execute(
                     text(
                         "UPDATE companies SET analysis_status = 'complete' "
