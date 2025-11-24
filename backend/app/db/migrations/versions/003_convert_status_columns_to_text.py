@@ -9,7 +9,7 @@ was removed in favor of preserving PostgreSQL enums.
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "003_convert_status_columns_to_text"
+revision = "003_status_enum_placeholder"
 down_revision = "002_update_status_enums"
 branch_labels = None
 depends_on = None
