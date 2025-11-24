@@ -11,14 +11,29 @@ branch_labels = None
 depends_on = None
 
 
+def _enum_value_exists(bind, enum_name: str, value: str) -> bool:
+    exists_stmt = sa.text(
+        """
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_enum e ON t.oid = e.enumtypid
+        WHERE t.typname = :enum_name AND e.enumlabel = :value
+        LIMIT 1
+        """
+    )
+    result = bind.execute(exists_stmt, {"enum_name": enum_name, "value": value})
+    return result.scalar() is not None
+
+
 def _add_enum_value(enum_name: str, value: str) -> None:
-    ctx = op.get_context()
     bind = op.get_bind()
-    statement = sa.text(
-        f"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS :value"
-    ).bindparams(value=value)
+    if _enum_value_exists(bind, enum_name, value):
+        return
+
+    ctx = op.get_context()
+    statement = sa.text(f"ALTER TYPE {enum_name} ADD VALUE :value")
     with ctx.autocommit_block():
-        bind.execute(statement)
+        bind.execute(statement, {"value": value})
 
 
 def upgrade() -> None:
