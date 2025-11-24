@@ -21,6 +21,7 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
             autocommit_conn = connection.execution_options(isolation_level="AUTOCOMMIT")
 
             # Ensure enum values exist (PostgreSQL 9.6+ supports IF NOT EXISTS)
+            # Attempt to add enum values, but swallow errors if the enum is missing (older schema).
             enum_statements = [
                 "ALTER TYPE companystatus ADD VALUE IF NOT EXISTS 'pending'",
                 "ALTER TYPE companystatus ADD VALUE IF NOT EXISTS 'approved'",
@@ -32,79 +33,96 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
             ]
 
             for stmt in enum_statements:
-                autocommit_conn.execute(text(stmt))
+                try:
+                    autocommit_conn.execute(text(stmt))
+                except Exception:
+                    # Ignore missing enum type or other non-critical failures.
+                    log.debug("Enum alteration failed (ignored): %s", stmt, exc_info=True)
 
-            # Capture existing enum labels to avoid referencing removed values
-            company_labels = [
-                row[0]
-                for row in autocommit_conn.execute(
-                    text(
-                        """
-                        SELECT e.enumlabel
-                        FROM pg_type t
-                        JOIN pg_enum e ON t.oid = e.enumtypid
-                        WHERE t.typname = 'companystatus'
-                        """
+            # Determine current enum labels, ignoring errors
+            try:
+                company_labels = [
+                    row[0]
+                    for row in autocommit_conn.execute(
+                        text(
+                            """
+                            SELECT e.enumlabel
+                            FROM pg_type t
+                            JOIN pg_enum e ON t.oid = e.enumtypid
+                            WHERE t.typname = 'companystatus'
+                            """
+                        )
                     )
-                )
-            ]
-            analysis_labels = [
-                row[0]
-                for row in autocommit_conn.execute(
-                    text(
-                        """
-                        SELECT e.enumlabel
-                        FROM pg_type t
-                        JOIN pg_enum e ON t.oid = e.enumtypid
-                        WHERE t.typname = 'analysisstatus'
-                        """
+                ]
+            except Exception:
+                company_labels = []
+
+            try:
+                analysis_labels = [
+                    row[0]
+                    for row in autocommit_conn.execute(
+                        text(
+                            """
+                            SELECT e.enumlabel
+                            FROM pg_type t
+                            JOIN pg_enum e ON t.oid = e.enumtypid
+                            WHERE t.typname = 'analysisstatus'
+                            """
+                        )
                     )
-                )
-            ]
+                ]
+            except Exception:
+                analysis_labels = []
 
             has_company_pending = "pending" in company_labels
-            has_rejected_values = any(label in ("rejected", "revoked") for label in company_labels)
-            has_analysis_pending = "pending" in analysis_labels
-            has_legacy_analysis = any(label in ("completed", "failed", "incomplete") for label in analysis_labels)
+            if has_company_pending and any(label in ("rejected", "revoked") for label in company_labels):
+                try:
+                    autocommit_conn.execute(
+                        text(
+                            "UPDATE companies SET status = 'suspicious' "
+                            "WHERE status IN ('rejected', 'revoked')"
+                        )
+                    )
+                except Exception:
+                    log.warning("Failed to normalize legacy company statuses", exc_info=True)
 
-            if has_company_pending and has_rejected_values:
+            has_analysis_pending = "pending" in analysis_labels
+            if has_analysis_pending and any(label in ("completed", "failed", "incomplete") for label in analysis_labels):
+                try:
+                    autocommit_conn.execute(
+                        text(
+                            "UPDATE companies SET analysis_status = 'complete' "
+                            "WHERE analysis_status IN ('completed', 'failed', 'incomplete')"
+                        )
+                    )
+                except Exception:
+                    log.warning("Failed to normalize legacy analysis statuses", exc_info=True)
+
+            # Risk-based normalization always safe
+            try:
+                autocommit_conn.execute(
+                    text("UPDATE companies SET status = 'fraudulent' WHERE risk_score >= 70")
+                )
                 autocommit_conn.execute(
                     text(
                         "UPDATE companies SET status = 'suspicious' "
-                        "WHERE status IN ('rejected', 'revoked')"
+                        "WHERE status IN ('pending', 'approved') AND risk_score BETWEEN 31 AND 69"
                     )
                 )
-
-            if has_analysis_pending and has_legacy_analysis:
                 autocommit_conn.execute(
                     text(
-                        "UPDATE companies SET analysis_status = 'complete' "
-                        "WHERE analysis_status IN ('completed', 'failed', 'incomplete')"
+                        "UPDATE companies SET status = 'approved' "
+                        "WHERE status IN ('pending', 'approved') AND analysis_status = 'complete' AND risk_score <= 30"
                     )
                 )
-
-            # Risk-based normalization always safe
-            autocommit_conn.execute(
-                text("UPDATE companies SET status = 'fraudulent' WHERE risk_score >= 70")
-            )
-            autocommit_conn.execute(
-                text(
-                    "UPDATE companies SET status = 'suspicious' "
-                    "WHERE status IN ('pending', 'approved') AND risk_score BETWEEN 31 AND 69"
+                autocommit_conn.execute(
+                    text(
+                        "UPDATE companies SET status = 'suspicious' "
+                        "WHERE analysis_status <> 'complete' AND status <> 'fraudulent'"
+                    )
                 )
-            )
-            autocommit_conn.execute(
-                text(
-                    "UPDATE companies SET status = 'approved' "
-                    "WHERE status IN ('pending', 'approved') AND analysis_status = 'complete' AND risk_score <= 30"
-                )
-            )
-            autocommit_conn.execute(
-                text(
-                    "UPDATE companies SET status = 'suspicious' "
-                    "WHERE analysis_status <> 'complete' AND status <> 'fraudulent'"
-                )
-            )
+            except Exception:
+                log.warning("Failed to run risk-based status normalization", exc_info=True)
 
     except Exception:  # pragma: no cover - defensive; log and continue
         log.exception("Failed to ensure status schema")
