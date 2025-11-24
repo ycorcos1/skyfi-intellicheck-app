@@ -60,163 +60,113 @@ def upgrade() -> None:
                 pass
         return
     
-    # Check current state for partial application
-    check_new_company_enum = conn.execute(
-        sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'companystatus_new')")
-    ).scalar()
-    
-    check_old_company_enum = conn.execute(
-        sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'companystatus')")
-    ).scalar()
-    
-    # If partially applied (new enum exists but swap not complete), complete the swap
-    if check_new_company_enum and check_old_company_enum:
-        # Complete the migration by finishing the swap
-        try:
-            op.execute("DROP TYPE IF EXISTS companystatus")
-        except Exception:
-            pass
-        try:
-            op.execute("ALTER TYPE companystatus_new RENAME TO companystatus")
-        except Exception:
-            pass
-        try:
-            op.execute("DROP TYPE IF EXISTS analysisstatus")
-        except Exception:
-            pass
-        try:
-            op.execute("ALTER TYPE analysisstatus_new RENAME TO analysisstatus")
-        except Exception:
-            pass
-        return
+    # Create new enum types (if they already exist, checkfirst prevents errors)
+    company_status_new = postgresql.ENUM(
+        *NEW_COMPANY_STATUS_VALUES, name="companystatus_new"
+    )
+    company_status_new.create(conn, checkfirst=True)
 
-    # Normalize existing data before swapping enum definitions
-    # Only update if old enum values still exist
-    if check_old_company_enum:
-        conn.execute(
-            sa.text(
-                """
-                UPDATE companies
-                SET status = 'suspicious'
-                WHERE status IN ('rejected', 'revoked')
-                """
-            )
-        )
+    analysis_status_new = postgresql.ENUM(
+        *NEW_ANALYSIS_STATUS_VALUES, name="analysisstatus_new"
+    )
+    analysis_status_new.create(conn, checkfirst=True)
 
-        # Companies with failed or incomplete analyses should become suspicious
-        conn.execute(
-            sa.text(
-                """
-                UPDATE companies
-                SET status = 'suspicious'
-                WHERE analysis_status IN ('failed', 'incomplete')
-                  AND status != 'fraudulent'
-                """
-            )
-        )
+    # Alter columns to use the new enum types while mapping old values
+    op.execute(
+        """
+        ALTER TABLE companies
+        ALTER COLUMN status
+        TYPE companystatus_new
+        USING (
+            CASE status::text
+                WHEN 'approved' THEN 'approved'
+                WHEN 'fraudulent' THEN 'fraudulent'
+                WHEN 'rejected' THEN 'suspicious'
+                WHEN 'revoked' THEN 'suspicious'
+                ELSE 'pending'
+            END
+        )::companystatus_new
+        """
+    )
 
-        # Apply risk-based status adjustments for completed analyses
-        conn.execute(
-            sa.text(
-                """
-                UPDATE companies
-                SET status = 'fraudulent'
-                WHERE risk_score >= 70
-                  AND analysis_status IN ('completed', 'failed', 'incomplete')
-                """
-            )
-        )
+    op.execute(
+        """
+        ALTER TABLE companies
+        ALTER COLUMN analysis_status
+        TYPE analysisstatus_new
+        USING (
+            CASE analysis_status::text
+                WHEN 'pending' THEN 'pending'
+                WHEN 'in_progress' THEN 'in_progress'
+                ELSE 'complete'
+            END
+        )::analysisstatus_new
+        """
+    )
 
-        conn.execute(
-            sa.text(
-                """
-                UPDATE companies
-                SET status = 'suspicious'
-                WHERE risk_score BETWEEN 31 AND 69
-                  AND analysis_status IN ('completed', 'failed', 'incomplete')
-                  AND status != 'fraudulent'
-                """
-            )
-        )
+    # Update defaults for new enums (will be adjusted after rename automatically)
+    op.execute(
+        "ALTER TABLE companies ALTER COLUMN status SET DEFAULT 'pending'::companystatus_new"
+    )
+    op.execute(
+        "ALTER TABLE companies ALTER COLUMN analysis_status SET DEFAULT 'pending'::analysisstatus_new"
+    )
 
-        conn.execute(
-            sa.text(
-                """
-                UPDATE companies
-                SET status = 'approved'
-                WHERE risk_score <= 30
-                  AND analysis_status = 'completed'
-                  AND status = 'pending'
-                """
-            )
-        )
+    # Remove old enums and rename new ones to maintain schema compatibility
+    op.execute("DROP TYPE IF EXISTS companystatus")
+    op.execute("ALTER TYPE companystatus_new RENAME TO companystatus")
 
-    # Create new enum types with the desired values (only if they don't exist)
-    if not check_new_company_enum:
-        company_status_new = postgresql.ENUM(
-            *NEW_COMPANY_STATUS_VALUES, name="companystatus_new"
-        )
-        company_status_new.create(conn)
-    
-    analysis_status_new_exists = conn.execute(
-        sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'analysisstatus_new')")
-    ).scalar()
-    
-    if not analysis_status_new_exists:
-        analysis_status_new = postgresql.ENUM(
-            *NEW_ANALYSIS_STATUS_VALUES, name="analysisstatus_new"
-        )
-        analysis_status_new.create(conn)
+    op.execute("DROP TYPE IF EXISTS analysisstatus")
+    op.execute("ALTER TYPE analysisstatus_new RENAME TO analysisstatus")
 
-    # Swap the status column to the new enum using explicit casting
-    # Only if old enum still exists
-    if check_old_company_enum:
-        op.execute(
+    # Reset defaults to point at the renamed enums
+    op.execute("ALTER TABLE companies ALTER COLUMN status SET DEFAULT 'pending'::companystatus")
+    op.execute("ALTER TABLE companies ALTER COLUMN analysis_status SET DEFAULT 'pending'::analysisstatus")
+
+    # Now that columns accept new values, normalize statuses with business rules
+    conn.execute(
+        sa.text(
             """
-            ALTER TABLE companies
-            ALTER COLUMN status
-            TYPE companystatus_new
-            USING (
-                CASE status::text
-                    WHEN 'pending' THEN 'pending'
-                    WHEN 'approved' THEN 'approved'
-                    WHEN 'fraudulent' THEN 'fraudulent'
-                    ELSE 'suspicious'
-                END
-            )::companystatus_new
+            UPDATE companies
+            SET status = 'fraudulent'
+            WHERE risk_score >= 70
             """
         )
+    )
 
-        # Swap the analysis_status column to the new enum
-        op.execute(
+    conn.execute(
+        sa.text(
             """
-            ALTER TABLE companies
-            ALTER COLUMN analysis_status
-            TYPE analysisstatus_new
-            USING (
-                CASE analysis_status::text
-                    WHEN 'pending' THEN 'pending'
-                    WHEN 'in_progress' THEN 'in_progress'
-                    ELSE 'complete'
-                END
-            )::analysisstatus_new
+            UPDATE companies
+            SET status = 'approved'
+            WHERE status = 'pending'
+              AND analysis_status = 'complete'
+              AND risk_score <= 30
             """
         )
+    )
 
-        # Update defaults
-        op.execute(
-            "ALTER TABLE companies ALTER COLUMN status SET DEFAULT 'pending'::companystatus_new"
+    conn.execute(
+        sa.text(
+            """
+            UPDATE companies
+            SET status = 'suspicious'
+            WHERE risk_score BETWEEN 31 AND 69
+              AND status != 'fraudulent'
+            """
         )
-        op.execute(
-            "ALTER TABLE companies ALTER COLUMN analysis_status SET DEFAULT 'pending'::analysisstatus_new"
+    )
+
+    conn.execute(
+        sa.text(
+            """
+            UPDATE companies
+            SET status = 'suspicious'
+            WHERE analysis_status != 'complete'
+              AND status != 'fraudulent'
+            """
         )
-
-        # Drop old enums and rename new ones
-        op.execute("DROP TYPE IF EXISTS companystatus")
-        op.execute("ALTER TYPE companystatus_new RENAME TO companystatus")
-
-        op.execute("DROP TYPE IF EXISTS analysisstatus")
-        op.execute("ALTER TYPE analysisstatus_new RENAME TO analysisstatus")
+    )
 
 
 def downgrade() -> None:
