@@ -202,32 +202,37 @@ def on_startup() -> None:
                     current_rev = row[0]
                     logger.info(f"Current alembic revision: {current_rev}")
 
-        # Known valid revisions
+        # Known valid revisions - head is the latest
+        HEAD_REVISION = "003_add_status_enum_values"
         valid_revisions = {
             "001_initial_schema",
             "002_update_status_enums",
-            "003_add_status_enum_values",
+            HEAD_REVISION,
         }
 
         if not has_version_table:
             if existing_tables:
                 logger.warning(
-                    "Alembic version table missing but tables exist; stamping to 003_add_status_enum_values",
+                    f"Alembic version table missing but tables exist; stamping to {HEAD_REVISION}",
                     extra={"tables": existing_tables},
                 )
-                command.stamp(alembic_cfg, "003_add_status_enum_values")
+                command.stamp(alembic_cfg, HEAD_REVISION)
             else:
                 logger.info("Alembic version table missing and no tables found; stamping base")
                 command.stamp(alembic_cfg, "base")
         elif current_rev and current_rev not in valid_revisions:
             # Orphaned revision - stamp to latest valid
             logger.warning(
-                f"Orphaned alembic revision {current_rev}; re-stamping to 003_add_status_enum_values"
+                f"Orphaned alembic revision {current_rev}; re-stamping to {HEAD_REVISION}"
             )
             with db_engine.connect() as conn:
                 conn.execute(sa.text("DELETE FROM alembic_version"))
                 conn.commit()
-            command.stamp(alembic_cfg, "003_add_status_enum_values")
+            command.stamp(alembic_cfg, HEAD_REVISION)
+        elif current_rev == HEAD_REVISION:
+            # Already at head, skip upgrade
+            logger.info("Database already at head revision, skipping migrations")
+            return
 
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations complete")
