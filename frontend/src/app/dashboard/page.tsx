@@ -320,6 +320,7 @@ export default function DashboardPage() {
   // Use a ref to store the latest loadCompanies function to avoid dependency issues
   const loadCompaniesRef = useRef<(() => Promise<void>) | undefined>(undefined);
   const lastRefreshTokenRef = useRef(0);
+  const lastPageRef = useRef(1);
 
   const loadCompanies = useCallback(async () => {
     if (riskRangeError || !isAuthenticated || isLoggingOut) {
@@ -425,10 +426,18 @@ export default function DashboardPage() {
 
   // Load companies when page changes (pagination)
   useEffect(() => {
-    if (isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
-      void loadCompanies();
+    // Only load if page actually changed and we're authenticated
+    const shouldLoad = currentPage !== lastPageRef.current;
+    
+    if (shouldLoad && isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+      lastPageRef.current = currentPage;
+      if (loadCompaniesRef.current) {
+        void loadCompaniesRef.current();
+      }
     }
-  }, [currentPage, loadCompanies, isAuthenticated, isLoggingOut]);
+    // Only depend on currentPage - isAuthenticated and isLoggingOut are checked inside
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const handleDeleteClick = useCallback(
     (company: Company) => {
