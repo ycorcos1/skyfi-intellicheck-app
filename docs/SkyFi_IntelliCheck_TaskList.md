@@ -155,8 +155,7 @@ FastAPI endpoints (all under `/v1/` prefix):
 Add endpoints:
 
 - `POST /companies/{id}/reanalyze` (request body: { "retry_failed_only": true } for selective retry)
-- `PATCH /companies/{id}/status` (mark review complete, approve, reject)
-- `POST /companies/{id}/flag-fraudulent`
+- `PATCH /companies/{id}/status` (mark review complete, approve, mark suspicious)
 - `POST /companies/{id}/revoke-approval`
 - `GET /companies/{id}/analysis/status` (for real-time polling: returns status, progress_percentage, current_step)
 

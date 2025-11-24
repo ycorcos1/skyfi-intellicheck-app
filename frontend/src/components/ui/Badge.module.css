@@ -33,13 +33,7 @@
   background-color: rgba(220, 53, 69, 0.1);
 }
 
-.rejected {
-  color: var(--color-gray-dark);
-  border-color: var(--color-gray-dark);
-  background-color: rgba(136, 136, 136, 0.1);
-}
-
-.revoked {
+.suspicious {
   color: var(--color-orange);
   border-color: var(--color-orange);
   background-color: rgba(255, 140, 0, 0.12);
@@ -57,19 +51,13 @@
   background-color: rgba(0, 123, 255, 0.12);
 }
 
-.analysis-completed {
+.analysis-complete {
   color: var(--color-success);
   border-color: var(--color-success);
   background-color: rgba(40, 167, 69, 0.1);
 }
 
-.analysis-failed {
-  color: var(--color-error);
-  border-color: var(--color-error);
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-.analysis-incomplete {
+.analysis-warning {
   color: var(--color-yellow);
   border-color: var(--color-yellow);
   background-color: rgba(255, 204, 0, 0.1);

@@ -9,7 +9,7 @@ type MockCompany = {
   id: string;
   name: string;
   domain: string;
-  status: "approved" | "pending" | "fraudulent" | "rejected" | "revoked";
+  status: "approved" | "pending" | "fraudulent" | "suspicious";
   risk: number;
   created: string;
   lastAnalyzed: string;
@@ -35,17 +35,17 @@ const mockCompanies: MockCompany[] = [
     risk: 14,
     created: "2025-01-12",
     lastAnalyzed: "2025-01-14",
-    analysisStatus: "analysis-completed",
+    analysisStatus: "analysis-complete",
   },
   {
     id: "3",
     name: "OrbitSight Labs",
     domain: "orbitsight.ai",
-    status: "revoked",
+    status: "suspicious",
     risk: 52,
     created: "2024-12-22",
     lastAnalyzed: "2025-01-03",
-    analysisStatus: "analysis-incomplete",
+    analysisStatus: "analysis-warning",
   },
   {
     id: "4",
@@ -55,7 +55,7 @@ const mockCompanies: MockCompany[] = [
     risk: 92,
     created: "2024-12-28",
     lastAnalyzed: "2025-01-10",
-    analysisStatus: "analysis-failed",
+    analysisStatus: "analysis-warning",
   },
   {
     id: "5",
@@ -65,7 +65,7 @@ const mockCompanies: MockCompany[] = [
     risk: 24,
     created: "2024-11-30",
     lastAnalyzed: "2024-12-15",
-    analysisStatus: "analysis-completed",
+    analysisStatus: "analysis-complete",
   },
   {
     id: "6",
@@ -81,11 +81,11 @@ const mockCompanies: MockCompany[] = [
     id: "7",
     name: "TerraScope Intelligence",
     domain: "terrascopeintelligence.net",
-    status: "rejected",
+    status: "suspicious",
     risk: 74,
     created: "2024-12-05",
     lastAnalyzed: "2024-12-18",
-    analysisStatus: "analysis-completed",
+    analysisStatus: "analysis-warning",
   },
   {
     id: "8",
@@ -102,9 +102,8 @@ const mockCompanies: MockCompany[] = [
 const statusOptions: SelectOption[] = [
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
+  { value: "suspicious", label: "Suspicious" },
   { value: "fraudulent", label: "Fraudulent" },
-  { value: "rejected", label: "Rejected" },
-  { value: "revoked", label: "Revoked" },
 ];
 
 const PAGE_SIZE = 5;
@@ -113,13 +112,11 @@ const badgeLabels: Record<BadgeVariant, string> = {
   approved: "Approved",
   pending: "Pending",
   fraudulent: "Fraudulent",
-  rejected: "Rejected",
-  revoked: "Revoked",
+  suspicious: "Suspicious",
   "analysis-pending": "Pending",
   "analysis-in-progress": "In Progress",
-  "analysis-completed": "Completed",
-  "analysis-failed": "Failed",
-  "analysis-incomplete": "Incomplete",
+  "analysis-complete": "Complete",
+  "analysis-warning": "Complete (Issues)",
 };
 
 const formatBadgeLabel = (variant: BadgeVariant) => {

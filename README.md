@@ -673,7 +673,7 @@ List companies with filtering, search, and pagination.
 - `page` (int, default: 1): Page number (1-indexed)
 - `limit` (int, default: 20, max: 100): Items per page
 - `search` (string, optional): Case-insensitive search by company name
-- `status` (string, optional): Filter by status (`pending`, `approved`, `rejected`, `fraudulent`, `revoked`)
+- `status` (string, optional): Filter by status (`pending`, `approved`, `suspicious`, `fraudulent`)
 - `risk_min` (int, optional): Minimum risk score (0-100)
 - `risk_max` (int, optional): Maximum risk score (0-100)
 - `include_deleted` (bool, default: false): Include soft-deleted companies
@@ -689,7 +689,7 @@ List companies with filtering, search, and pagination.
       "domain": "example.com",
       "status": "approved",
       "risk_score": 25,
-      "analysis_status": "completed",
+      "analysis_status": "complete",
       "created_at": "2025-01-15T10:00:00Z"
     }
   ],
@@ -715,7 +715,7 @@ Retrieve a single company with latest analysis.
   "domain": "example.com",
   "status": "approved",
   "risk_score": 25,
-  "analysis_status": "completed",
+  "analysis_status": "complete",
   "latest_analysis": {
     "id": "uuid",
     "version": 1,
@@ -803,11 +803,12 @@ Update company status via state machine action.
 
 **Valid Actions:**
 
-- `mark_review_complete`: `pending` → `approved`
-- `approve`: `pending` → `approved`
-- `reject`: `pending` → `rejected`
-- `flag_fraudulent`: `pending`/`approved` → `fraudulent`
-- `revoke_approval`: `approved` → `revoked`
+- `mark_review_complete`: `pending`/`suspicious` → `approved`
+- `approve`: `pending`/`suspicious` → `approved`
+- `mark_suspicious`: `pending`/`approved` → `suspicious`
+- `revoke_approval`: `approved` → `suspicious`
+
+> Note: Status `fraudulent` is assigned automatically by the analysis worker when a completed analysis produces a risk score of 70 or higher.
 
 **Response:** `200 OK`
 
@@ -820,14 +821,6 @@ Update company status via state machine action.
   "new_status": "approved"
 }
 ```
-
-#### Flag as Fraudulent
-
-**POST** `/v1/companies/{company_id}/flag-fraudulent`
-
-Shortcut endpoint to flag a company as fraudulent.
-
-**Response:** `200 OK` (StatusUpdateResponse)
 
 #### Revoke Approval
 
@@ -847,9 +840,11 @@ Get real-time analysis status for polling.
 
 ```json
 {
-  "status": "in_progress",
+  "analysis_status": "in_progress",
   "progress_percentage": 60,
-  "current_step": "website_scrape"
+  "current_step": "website_scrape",
+  "failed_checks": [],
+  "last_updated": "2025-01-15T10:07:30Z"
 }
 ```
 
@@ -1183,9 +1178,9 @@ The database consists of four main tables:
 | `website_url`      | VARCHAR(500) | NULLABLE          | Company website URL                                                             |
 | `email`            | VARCHAR(255) | NULLABLE          | Contact email                                                                   |
 | `phone`            | VARCHAR(50)  | NULLABLE          | Contact phone                                                                   |
-| `status`           | ENUM         | NOT NULL, INDEXED | Company status (`pending`, `approved`, `rejected`, `fraudulent`, `revoked`)     |
+| `status`           | ENUM         | NOT NULL, INDEXED | Company status (`pending`, `approved`, `suspicious`, `fraudulent`)             |
 | `risk_score`       | INTEGER      | NOT NULL, INDEXED | Current risk score (0-100)                                                      |
-| `analysis_status`  | ENUM         | NOT NULL, INDEXED | Analysis status (`pending`, `in_progress`, `completed`, `failed`, `incomplete`) |
+| `analysis_status`  | ENUM         | NOT NULL, INDEXED | Analysis status (`pending`, `in_progress`, `complete`)                          |
 | `current_step`     | VARCHAR(50)  | NULLABLE          | Current analysis step                                                           |
 | `last_analyzed_at` | TIMESTAMP    | NULLABLE          | Last analysis timestamp                                                         |
 | `is_deleted`       | BOOLEAN      | NOT NULL, INDEXED | Soft delete flag                                                                |
@@ -1574,9 +1569,13 @@ final_score = clamp(rule_score + llm_score_adjustment, 0, 100)
 
 3. Updates `companies` table:
    - `risk_score = final_score`
-   - `analysis_status = "completed"` (or `"incomplete"` if checks failed)
+   - `analysis_status = "complete"`
    - `last_analyzed_at = now()`
-   - `current_step = null`
+   - `current_step = "complete"`
+   - `status` auto-updates based on outcome:
+     - `fraudulent` if `risk_score >= 70`
+     - `suspicious` if analysis is incomplete or `risk_score` in 31-69
+     - `approved` if analysis is complete and `risk_score <= 30`
 
 #### 13. Error Handling
 
@@ -1585,7 +1584,7 @@ If any check fails:
 - Error is logged with correlation ID
 - Check is marked as failed in `failed_checks` array
 - Analysis continues with other checks
-- If critical checks fail, `is_complete = false` and `analysis_status = "incomplete"`
+- If critical checks fail, `is_complete = false` and the company status is set to `suspicious` (analysis status remains `complete`)
 
 ### Risk Scoring Algorithm
 

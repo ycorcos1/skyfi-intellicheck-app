@@ -19,8 +19,8 @@ import {
   exportCompanyPdf,
   fetchAnalysisStatus,
   fetchCompanyDetail,
-  flagCompanyFraudulent,
   markCompanyReviewComplete,
+  markCompanySuspicious,
   reanalyzeCompany,
   revokeCompanyApproval,
 } from "@/lib/companies-api";
@@ -34,9 +34,9 @@ const BANNER_DISMISS_MS = 6_000;
 type ActionKey =
   | "rerun"
   | "retryFailed"
-  | "flag"
   | "revoke"
   | "review"
+  | "markSuspicious"
   | "exportPdf"
   | "exportJson"
   | "preview";
@@ -244,7 +244,7 @@ export function CompanyDetailModal({
       const status = await fetchAnalysisStatus(companyId, token);
       setStatusUpdate(status);
 
-      if (status.status === "in_progress" || status.status === "pending") {
+      if (status.analysis_status === "in_progress" || status.analysis_status === "pending") {
         if (!pollingIntervalRef.current) {
           pollingIntervalRef.current = setInterval(() => {
             void checkAnalysisStatus();
@@ -301,20 +301,20 @@ export function CompanyDetailModal({
     }
   }, [companyId, getAccessToken, checkAnalysisStatus]);
 
-  const handleFlagFraudulent = useCallback(async () => {
+  const handleMarkSuspicious = useCallback(async () => {
     if (!companyId) {
       return;
     }
 
-    setActionLoading("flag");
+    setActionLoading("markSuspicious");
     try {
       const token = await getAccessToken();
-      await flagCompanyFraudulent(companyId, token);
-      setBanner({ type: "success", message: "Company flagged as fraudulent." });
+      await markCompanySuspicious(companyId, token);
+      setBanner({ type: "success", message: "Company marked as suspicious." });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
       void loadDetail({ initial: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to flag company";
+      const message = err instanceof Error ? err.message : "Failed to mark company suspicious";
       setBanner({ type: "error", message });
       setTimeout(() => setBanner(null), BANNER_DISMISS_MS);
     } finally {
@@ -477,19 +477,7 @@ export function CompanyDetailModal({
       });
     }
 
-    if (detail.status && detail.status !== "fraudulent" && detail.status !== "revoked") {
-      items.push({
-        key: "flag",
-        label: "Flag as Fraudulent",
-        loadingLabel: "Flagging...",
-        variant: "secondary",
-        className: styles.warningButton,
-        disabled: actionLoading !== null,
-        onClick: handleFlagFraudulent,
-      });
-    }
-
-    if (detail.status === "pending") {
+    if (detail.status === "pending" || detail.status === "suspicious") {
       items.push({
         key: "review",
         label: "Mark Review Complete",
@@ -497,6 +485,18 @@ export function CompanyDetailModal({
         variant: "primary",
         disabled: actionLoading !== null,
         onClick: handleReviewComplete,
+      });
+    }
+
+    if (detail.status === "pending" || detail.status === "approved") {
+      items.push({
+        key: "markSuspicious",
+        label: "Mark as Suspicious",
+        loadingLabel: "Updating...",
+        variant: "secondary",
+        className: styles.warningButton,
+        disabled: actionLoading !== null,
+        onClick: handleMarkSuspicious,
       });
     }
 
@@ -535,11 +535,11 @@ export function CompanyDetailModal({
     handleRerun,
     handleRetryFailed,
     handleRevokeApproval,
-    handleFlagFraudulent,
     handleReviewComplete,
     handleExportPdf,
     handleExportJson,
     handlePreview,
+    handleMarkSuspicious,
   ]);
 
   if (!isOpen) {

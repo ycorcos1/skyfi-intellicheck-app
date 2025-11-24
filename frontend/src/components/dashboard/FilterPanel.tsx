@@ -9,9 +9,8 @@ const STATUS_OPTIONS: SelectOption[] = [
   { value: "all", label: "All Statuses" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
+  { value: "suspicious", label: "Suspicious" },
   { value: "fraudulent", label: "Fraudulent" },
-  { value: "revoked", label: "Revoked" },
 ];
 
 export interface FilterPanelProps {

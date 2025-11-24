@@ -130,8 +130,7 @@ Endpoints include:
 - PATCH /companies/{id} (editable only before first analysis)
 - DELETE /companies/{id} (soft delete)
 - POST /companies/{id}/reanalyze
-- PATCH /companies/{id}/status (mark review complete, approve, etc.)
-- POST /companies/{id}/flag-fraudulent
+- PATCH /companies/{id}/status (mark review complete, approve, mark suspicious, revoke approval)
 - POST /companies/{id}/revoke-approval
 - POST /companies/{id}/notes
 - GET /companies/{id}/notes
@@ -285,9 +284,10 @@ Frontend → API: save metadata (filename, size, type, uploaded_by)
 Frontend → API: GET /companies/{id}/analysis/status (every 5 seconds)
 API → RDS: fetch current status
 API → Frontend: {
-  "status": "pending|in_progress|completed|failed|incomplete",
+  "analysis_status": "pending|in_progress|complete",
   "progress_percentage": 0-100,
-  "current_step": "whois|dns|mx_validation|website_scrape|llm_processing|complete"
+  "current_step": "whois|dns|mx_validation|website_scrape|llm_processing|complete",
+  "failed_checks": [...]
 }
 Frontend: Update UI progress indicator
 
@@ -295,7 +295,7 @@ Progress Calculation:
 - progress_percentage = (completed_checks / total_checks) * 100
 - total_checks = 5 (whois, dns, mx_validation, website_scrape, llm_processing)
 - Worker updates companies.analysis_status and companies.current_step after each check
-- Polling stops when status === "completed" or "failed"
+- Polling stops when analysis_status === "complete"
 ```
 
 ---

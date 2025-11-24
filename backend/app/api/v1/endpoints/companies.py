@@ -46,15 +46,17 @@ router = APIRouter(prefix="/companies", tags=["companies"])
 STATUS_TRANSITIONS: Dict[tuple[CompanyStatus, str], CompanyStatus] = {
     (CompanyStatus.PENDING, "mark_review_complete"): CompanyStatus.APPROVED,
     (CompanyStatus.PENDING, "approve"): CompanyStatus.APPROVED,
-    (CompanyStatus.PENDING, "reject"): CompanyStatus.REJECTED,
-    (CompanyStatus.PENDING, "flag_fraudulent"): CompanyStatus.FRAUDULENT,
-    (CompanyStatus.APPROVED, "flag_fraudulent"): CompanyStatus.FRAUDULENT,
-    (CompanyStatus.APPROVED, "revoke_approval"): CompanyStatus.REVOKED,
+    (CompanyStatus.PENDING, "mark_suspicious"): CompanyStatus.SUSPICIOUS,
+    (CompanyStatus.SUSPICIOUS, "approve"): CompanyStatus.APPROVED,
+    (CompanyStatus.SUSPICIOUS, "mark_review_complete"): CompanyStatus.APPROVED,
+    (CompanyStatus.APPROVED, "mark_suspicious"): CompanyStatus.SUSPICIOUS,
+    (CompanyStatus.APPROVED, "revoke_approval"): CompanyStatus.SUSPICIOUS,
 }
 
 
 def _apply_status_action(company: Company, action: str) -> CompanyStatus:
     """Validate and apply a status transition."""
+    old_status = company.status
     transition_key = (company.status, action)
     new_status = STATUS_TRANSITIONS.get(transition_key)
     if new_status is None:
@@ -63,6 +65,15 @@ def _apply_status_action(company: Company, action: str) -> CompanyStatus:
             detail=f"Invalid status transition: {company.status.value} -> {action}",
         )
     company.status = new_status
+    logger.debug(
+        "Applied status transition",
+        extra={
+            "company_id": str(company.id),
+            "old_status": old_status.value,
+            "new_status": new_status.value,
+            "action": action,
+        },
+    )
     return new_status
 
 
@@ -70,7 +81,7 @@ def _calculate_progress_percentage(
     analysis_status: AnalysisStatus, current_step: Optional[str]
 ) -> int:
     """Calculate analysis progress percentage based on current step."""
-    if analysis_status in {AnalysisStatus.COMPLETED, AnalysisStatus.FAILED, AnalysisStatus.INCOMPLETE}:
+    if analysis_status == AnalysisStatus.COMPLETE:
         return 100
 
     step_order = ["whois", "dns", "mx_validation", "website_scrape", "llm_processing"]
@@ -738,25 +749,6 @@ async def update_company_status(
 
 
 @router.post(
-    "/{company_id}/flag-fraudulent",
-    response_model=StatusUpdateResponse,
-    summary="Flag a company as fraudulent",
-)
-async def flag_company_fraudulent(
-    company_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    """Flag a company as fraudulent."""
-    return _perform_status_update(
-        db=db,
-        company_id=company_id,
-        action="flag_fraudulent",
-        current_user=current_user,
-    )
-
-
-@router.post(
     "/{company_id}/revoke-approval",
     response_model=StatusUpdateResponse,
     summary="Revoke company approval",
@@ -778,7 +770,7 @@ async def revoke_company_approval(
 @router.post(
     "/{company_id}/auto-approve-if-eligible",
     response_model=StatusUpdateResponse,
-    summary="Auto-approve company if eligible (analysis=COMPLETED, risk_score<=30, status=PENDING)",
+    summary="Auto-approve company if eligible (analysis=COMPLETE, risk_score<=30, status=PENDING)",
 )
 async def auto_approve_if_eligible(
     company_id: UUID,
@@ -809,10 +801,10 @@ async def auto_approve_if_eligible(
         )
     
     # Check eligibility
-    if company.analysis_status != AnalysisStatus.COMPLETED:
+    if company.analysis_status != AnalysisStatus.COMPLETE:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=f"Company analysis is not completed (current: {company.analysis_status.value})",
+            detail=f"Company analysis is not complete (current: {company.analysis_status.value})",
         )
     
     if company.risk_score > 30:
@@ -888,15 +880,9 @@ async def get_analysis_status(
         )
 
     progress = _calculate_progress_percentage(company.analysis_status, company.current_step)
-    if company.analysis_status in {
-        AnalysisStatus.COMPLETED,
-        AnalysisStatus.FAILED,
-        AnalysisStatus.INCOMPLETE,
-    }:
-        progress = 100
 
     failed_checks: list[str] = []
-    if company.analysis_status in {AnalysisStatus.FAILED, AnalysisStatus.INCOMPLETE}:
+    if company.analysis_status == AnalysisStatus.COMPLETE:
         latest_analysis = (
             db.query(CompanyAnalysis)
             .filter(CompanyAnalysis.company_id == company_id)

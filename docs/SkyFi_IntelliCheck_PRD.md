@@ -51,7 +51,7 @@ The goal is to protect SkyFi from fraudulent enterprise accounts, improve compli
 - Hybrid risk-scoring engine.
 - Verification history storage.
 - Operator dashboard.
-- Re-run analysis, revoke approval, flag fraudulent.
+- Re-run analysis, mark suspicious, revoke approval.
 - Supporting document uploads.
 - PDF and JSON export.
 - Full AWS-native infrastructure.
@@ -118,10 +118,12 @@ The goal is to protect SkyFi from fraudulent enterprise accounts, improve compli
 - Re-run analysis
 - Mark review complete
 - Revoke approval
-- Flag as fraudulent
+- Mark company as suspicious
 - Internal notes (add, view, edit)
 - Export PDF/JSON
 - Restore soft-deleted companies
+
+> Fraudulent status is assigned automatically when the analysis completes with a risk score ≥ 70.
 
 ### 6.5 Dashboard
 
@@ -199,9 +201,9 @@ SQS Queue --> Lambda Worker --> Step Functions (optional)
   "website_url": "string",
   "email": "string",
   "phone": "string",
-  "status": "pending|approved|rejected|fraudulent|revoked",
+  "status": "pending|approved|suspicious|fraudulent",
   "risk_score": 0,
-  "analysis_status": "pending|in_progress|completed|failed|incomplete",
+  "analysis_status": "pending|in_progress|complete",
   "current_step": "whois|dns|mx_validation|website_scrape|llm_processing|complete",
   "last_analyzed_at": "timestamp",
   "created_at": "...",
@@ -210,16 +212,14 @@ SQS Queue --> Lambda Worker --> Step Functions (optional)
 }
 ```
 
-**Status State Machine:**
+**Status State Machine (manual actions):**
 
-- `pending` → `approved` (operator reviews & approves via "Mark Review Complete" action)
-- `pending` → `rejected` (operator rejects)
-- `pending` → `fraudulent` (operator flags)
-- `approved` → `revoked` (revoke approval action)
-- `approved` → `fraudulent` (flag after approval)
-- `fraudulent` → [terminal state]
+- `pending` → `approved` (via `mark_review_complete` or `approve`)
+- `pending` → `suspicious` (via `mark_suspicious`)
+- `suspicious` → `approved` (via `mark_review_complete` or `approve`)
+- `approved` → `suspicious` (via `mark_suspicious` or `revoke_approval`)
 
-**Note:** "Mark Review Complete" sets status to `approved`. This is the primary approval action for operators.
+Fraudulent status is assigned automatically by the worker when `risk_score >= 70`.
 
 ### Analysis Record
 
@@ -253,9 +253,9 @@ SQS Queue --> Lambda Worker --> Step Functions (optional)
 - website_url
 - email
 - phone
-- status
+- status (enum: 'pending', 'approved', 'suspicious', 'fraudulent')
 - risk_score
-- analysis_status (enum: 'pending', 'in_progress', 'completed', 'failed', 'incomplete')
+- analysis_status (enum: 'pending', 'in_progress', 'complete')
 - current_step (VARCHAR(50), tracks current analysis step: 'whois', 'dns', 'mx_validation', 'website_scrape', 'llm_processing', 'complete')
 - last_analyzed_at
 - is_deleted
@@ -318,9 +318,10 @@ Lambda Worker:
 Frontend → API: GET /v1/companies/{id}/analysis/status (polling every 5s)
 API → DB: fetch current status
 API → Frontend: {
-  status: "pending|in_progress|completed|failed|incomplete",
+  analysis_status: "pending|in_progress|complete",
   progress_percentage: 0-100,
-  current_step: "whois|dns|mx_validation|website_scrape|llm_processing|complete"
+  current_step: "whois|dns|mx_validation|website_scrape|llm_processing|complete",
+  failed_checks: [...]
 }
 
 Frontend → API: GET /v1/companies/{id}

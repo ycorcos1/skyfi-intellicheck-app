@@ -148,7 +148,8 @@ class DatabaseManager:
         self,
         company_id: str,
         status: AnalysisStatus,
-        current_step: Optional[str] = None
+        current_step: Optional[str] = None,
+        mark_suspicious: bool = False,
     ):
         """Update company analysis status atomically."""
         session = self.get_session()
@@ -161,11 +162,17 @@ class DatabaseManager:
             if current_step:
                 company.current_step = current_step
             
-            if status == AnalysisStatus.COMPLETED:
+            if status == AnalysisStatus.COMPLETE:
                 company.current_step = 'complete'
                 company.last_analyzed_at = datetime.utcnow()
-            elif status == AnalysisStatus.FAILED:
-                company.current_step = None
+            else:
+                company.current_step = current_step or company.current_step
+
+            if mark_suspicious:
+                from app.models.company import CompanyStatus
+
+                if company.status != CompanyStatus.FRAUDULENT:
+                    company.status = CompanyStatus.SUSPICIOUS
             
             session.commit()
             logger.info(f"Updated company {company_id} status to {status.value}")
@@ -253,18 +260,45 @@ class DatabaseManager:
             # Update company record
             company = session.query(Company).filter(Company.id == company_id).first()
             if company:
+                from app.models.company import CompanyStatus
+
                 company.risk_score = risk_score
-                company.analysis_status = AnalysisStatus.COMPLETED if is_complete else AnalysisStatus.INCOMPLETE
+                company.analysis_status = AnalysisStatus.COMPLETE
                 company.current_step = "complete"
                 company.last_analyzed_at = datetime.utcnow()
-                
-                # Auto-approve companies with low risk scores (0-30) when analysis completes
-                # Companies with higher risk scores remain PENDING for manual review
-                if is_complete and company.analysis_status == AnalysisStatus.COMPLETED:
-                    from app.models.company import CompanyStatus
-                    if risk_score <= 30 and company.status == CompanyStatus.PENDING:
+
+                previous_status = company.status
+
+                if not is_complete:
+                    if previous_status != CompanyStatus.FRAUDULENT:
+                        company.status = CompanyStatus.SUSPICIOUS
+                        logger.info(
+                            "Marked company %s as suspicious due to incomplete analysis",
+                            company_id,
+                        )
+                else:
+                    if risk_score >= 70:
+                        company.status = CompanyStatus.FRAUDULENT
+                        logger.info(
+                            "Marked company %s as fraudulent (risk_score=%s)",
+                            company_id,
+                            risk_score,
+                        )
+                    elif risk_score > 30:
+                        if previous_status != CompanyStatus.FRAUDULENT:
+                            company.status = CompanyStatus.SUSPICIOUS
+                            logger.info(
+                                "Marked company %s as suspicious (risk_score=%s)",
+                                company_id,
+                                risk_score,
+                            )
+                    else:
                         company.status = CompanyStatus.APPROVED
-                        logger.info(f"Auto-approved company {company_id} (risk_score: {risk_score})")
+                        logger.info(
+                            "Auto-approved company %s (risk_score=%s)",
+                            company_id,
+                            risk_score,
+                        )
             
             # Get version before committing (to avoid DetachedInstanceError)
             analysis_version = next_version

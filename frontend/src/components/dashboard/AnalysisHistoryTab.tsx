@@ -38,15 +38,12 @@ function getRiskVariant(score: number) {
 function resolveStatusBadge(analysis: CompanyAnalysis) {
   const failedChecks = analysis.failed_checks ?? [];
 
-  if (!analysis.is_complete && failedChecks.length > 0) {
-    return { variant: "analysis-incomplete" as const, label: "Incomplete" };
+  if (!analysis.is_complete || failedChecks.length > 0) {
+    const label = !analysis.is_complete ? "Incomplete" : "Complete (Issues)";
+    return { variant: "analysis-warning" as const, label };
   }
 
-  if (failedChecks.length > 0) {
-    return { variant: "analysis-failed" as const, label: "Failed" };
-  }
-
-  return { variant: "analysis-completed" as const, label: "Complete" };
+  return { variant: "analysis-complete" as const, label: "Complete" };
 }
 
 export function AnalysisHistoryTab({ companyName, companyId: propCompanyId }: AnalysisHistoryTabProps) {

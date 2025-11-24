@@ -17,33 +17,27 @@ export interface CompanyHeaderProps {
 const STATUS_LABELS: Record<CompanyStatus, string> = {
   approved: "Approved",
   pending: "Pending",
-  rejected: "Rejected",
+  suspicious: "Suspicious",
   fraudulent: "Fraudulent",
-  revoked: "Revoked",
 };
 
 const STATUS_BADGE_VARIANTS: Record<CompanyStatus, BadgeVariant> = {
   approved: "approved",
   pending: "pending",
-  rejected: "rejected",
+  suspicious: "suspicious",
   fraudulent: "fraudulent",
-  revoked: "revoked",
 };
 
 const ANALYSIS_STATUS_LABELS: Record<AnalysisStatus, string> = {
   pending: "Pending",
   in_progress: "In Progress",
-  completed: "Completed",
-  failed: "Failed",
-  incomplete: "Incomplete",
+  complete: "Complete",
 };
 
 const ANALYSIS_BADGE_VARIANTS: Record<AnalysisStatus, BadgeVariant> = {
   pending: "analysis-pending",
   in_progress: "analysis-in-progress",
-  completed: "analysis-completed",
-  failed: "analysis-failed",
-  incomplete: "analysis-incomplete",
+  complete: "analysis-complete",
 };
 
 const STEP_DESCRIPTIONS: Record<CurrentStep, string> = {
@@ -90,13 +84,10 @@ function formatAnalysisDetail(company: Company, analysis: CompanyAnalysis | null
     return `Processing: ${step}…`;
   }
 
-  if (company.analysis_status === "failed") {
-    return "Last run failed. Investigate before approving.";
-  }
-
   if (analysis) {
     const formatted = formatDate(analysis.created_at) ?? "an unknown date";
-    return `Last analyzed on ${formatted}.`;
+    const hasIssues = !analysis.is_complete || (analysis.failed_checks?.length ?? 0) > 0;
+    return hasIssues ? `Last analyzed on ${formatted} — issues detected.` : `Last analyzed on ${formatted}.`;
   }
 
   if (company.analysis_status === "pending") {

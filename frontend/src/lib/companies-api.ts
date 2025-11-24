@@ -109,13 +109,6 @@ export async function reanalyzeCompany(id: string, retryFailedOnly: boolean, tok
   });
 }
 
-export async function flagCompanyFraudulent(id: string, token: string | null) {
-  return apiRequest<void>(`/v1/companies/${id}/flag-fraudulent`, {
-    method: "POST",
-    token,
-  });
-}
-
 export async function revokeCompanyApproval(id: string, token: string | null) {
   return apiRequest<void>(`/v1/companies/${id}/revoke-approval`, {
     method: "POST",
@@ -126,7 +119,15 @@ export async function revokeCompanyApproval(id: string, token: string | null) {
 export async function markCompanyReviewComplete(id: string, token: string | null) {
   return apiRequest<void>(`/v1/companies/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status: "approved" }),
+    body: JSON.stringify({ action: "mark_review_complete" }),
+    token,
+  });
+}
+
+export async function markCompanySuspicious(id: string, token: string | null) {
+  return apiRequest<void>(`/v1/companies/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ action: "mark_suspicious" }),
     token,
   });
 }

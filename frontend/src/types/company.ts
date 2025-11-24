@@ -1,6 +1,6 @@
-export type CompanyStatus = "pending" | "approved" | "rejected" | "fraudulent" | "revoked";
+export type CompanyStatus = "pending" | "approved" | "suspicious" | "fraudulent";
 
-export type AnalysisStatus = "pending" | "in_progress" | "completed" | "failed" | "incomplete";
+export type AnalysisStatus = "pending" | "in_progress" | "complete";
 
 export type CurrentStep =
   | "whois"
@@ -77,8 +77,11 @@ export interface CompanyDetail extends Company {
 }
 
 export interface AnalysisStatusResponse {
-  status: AnalysisStatus;
+  company_id: string;
+  analysis_status: AnalysisStatus;
   progress_percentage: number;
   current_step: CurrentStep | null;
+  failed_checks?: string[];
+  last_updated?: string;
 }
 

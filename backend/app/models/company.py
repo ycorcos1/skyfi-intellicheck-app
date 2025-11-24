@@ -11,17 +11,14 @@ from app.core.database import Base
 class AnalysisStatus(str, enum.Enum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    INCOMPLETE = "incomplete"
+    COMPLETE = "complete"
 
 
 class CompanyStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
-    REJECTED = "rejected"
+    SUSPICIOUS = "suspicious"
     FRAUDULENT = "fraudulent"
-    REVOKED = "revoked"
 
 
 class Company(Base):

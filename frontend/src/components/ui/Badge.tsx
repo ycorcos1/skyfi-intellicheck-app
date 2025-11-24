@@ -5,13 +5,11 @@ export type BadgeVariant =
   | "approved"
   | "pending"
   | "fraudulent"
-  | "rejected"
-  | "revoked"
+  | "suspicious"
   | "analysis-pending"
   | "analysis-in-progress"
-  | "analysis-completed"
-  | "analysis-failed"
-  | "analysis-incomplete";
+  | "analysis-complete"
+  | "analysis-warning";
 
 export interface BadgeProps {
   variant: BadgeVariant;

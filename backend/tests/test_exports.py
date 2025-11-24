@@ -60,7 +60,7 @@ def _create_company(
     *,
     name: str = "NovaGeo Analytics",
     status: CompanyStatus = CompanyStatus.PENDING,
-    analysis_status: AnalysisStatus = AnalysisStatus.COMPLETED,
+    analysis_status: AnalysisStatus = AnalysisStatus.COMPLETE,
 ) -> Company:
     company = Company(
         name=name,
@@ -167,5 +167,3 @@ def test_export_pdf_without_analysis_still_generates_report(
 def test_export_pdf_missing_company_returns_404(client: TestClient) -> None:
     response = client.get(f"/v1/companies/{uuid4()}/export/pdf")
     assert response.status_code == 404
-
-

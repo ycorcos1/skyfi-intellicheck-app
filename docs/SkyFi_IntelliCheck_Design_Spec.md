@@ -192,7 +192,7 @@ Goal: Premium, polished, enterprise-grade UI that is user-friendly, visually app
 │ └────────────────────────────────────────────────────────────┘│
 
 │ Actions:                                                    │
-│ [ Re-run Analysis ] [ Flag Fraudulent ] [ Revoke Approval ] │
+│ [ Re-run Analysis ] [ Mark Suspicious ] [ Revoke Approval ] │
 │ [ Mark Review Complete ] [ Export PDF ] [ Export JSON ]     │
 │ [ Upload Document ] [ Restore ] (if deleted)                │
 

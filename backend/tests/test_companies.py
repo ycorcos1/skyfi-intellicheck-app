@@ -100,7 +100,7 @@ def _create_company(
     *,
     name: str = "Test Company",
     status: CompanyStatus = CompanyStatus.PENDING,
-    analysis_status: AnalysisStatus = AnalysisStatus.COMPLETED,
+    analysis_status: AnalysisStatus = AnalysisStatus.COMPLETE,
     current_step: str | None = "complete",
 ) -> Company:
     company = Company(
@@ -152,7 +152,7 @@ def test_reanalyze_full_enqueues_message(
     session,
     fake_sqs,
 ) -> None:
-    company = _create_company(session, analysis_status=AnalysisStatus.COMPLETED)
+    company = _create_company(session, analysis_status=AnalysisStatus.COMPLETE)
 
     response = client.post(
         f"/v1/companies/{company.id}/reanalyze",
@@ -179,7 +179,7 @@ def test_reanalyze_failed_only_uses_failed_checks(
     session,
     fake_sqs,
 ) -> None:
-    company = _create_company(session, analysis_status=AnalysisStatus.INCOMPLETE)
+    company = _create_company(session, analysis_status=AnalysisStatus.COMPLETE)
     _create_analysis(session, company.id, failed_checks=["whois", "mx_validation"], is_complete=False)
 
     response = client.post(
@@ -200,7 +200,7 @@ def test_reanalyze_failed_only_without_failed_checks_returns_400(
     session,
     fake_sqs,
 ) -> None:
-    company = _create_company(session, analysis_status=AnalysisStatus.COMPLETED)
+    company = _create_company(session, analysis_status=AnalysisStatus.COMPLETE)
     _create_analysis(session, company.id, failed_checks=[], is_complete=True)
 
     response = client.post(
@@ -236,7 +236,7 @@ def test_update_company_status_invalid_transition(
     client: TestClient,
     session,
 ) -> None:
-    company = _create_company(session, status=CompanyStatus.REJECTED)
+    company = _create_company(session, status=CompanyStatus.FRAUDULENT)
 
     response = client.patch(
         f"/v1/companies/{company.id}/status",
@@ -244,19 +244,6 @@ def test_update_company_status_invalid_transition(
     )
 
     assert response.status_code == 400
-
-
-def test_flag_company_fraudulent_endpoint(
-    client: TestClient,
-    session,
-) -> None:
-    company = _create_company(session, status=CompanyStatus.PENDING)
-
-    response = client.post(f"/v1/companies/{company.id}/flag-fraudulent")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["status"] == CompanyStatus.FRAUDULENT
 
 
 def test_analysis_status_endpoint_in_progress(
@@ -283,7 +270,7 @@ def test_analysis_status_endpoint_failed_returns_failed_checks(
 ) -> None:
     company = _create_company(
         session,
-        analysis_status=AnalysisStatus.FAILED,
+        analysis_status=AnalysisStatus.COMPLETE,
         current_step=None,
     )
     _create_analysis(session, company.id, failed_checks=["llm_processing"], is_complete=False)
@@ -291,7 +278,7 @@ def test_analysis_status_endpoint_failed_returns_failed_checks(
     response = client.get(f"/v1/companies/{company.id}/analysis/status")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["analysis_status"] == AnalysisStatus.FAILED
+    assert payload["analysis_status"] == AnalysisStatus.COMPLETE
     assert payload["progress_percentage"] == 100
     assert payload["failed_checks"] == ["llm_processing"]
 

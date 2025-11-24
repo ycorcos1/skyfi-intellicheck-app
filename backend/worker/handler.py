@@ -695,7 +695,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             db_manager = DatabaseManager(config)
                             db_manager.update_company_analysis_status(
                                 company_id,
-                                AnalysisStatus.FAILED
+                                AnalysisStatus.COMPLETE,
+                                mark_suspicious=True
                             )
                             metrics.record_analysis_failure(company_id, type(e).__name__, correlation_id)
                             worker_logger.info("Updated company status to FAILED", company_id=company_id)

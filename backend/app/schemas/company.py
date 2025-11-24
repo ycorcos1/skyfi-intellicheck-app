@@ -126,8 +126,7 @@ class StatusUpdateRequest(BaseModel):
     action: Literal[
         "mark_review_complete",
         "approve",
-        "reject",
-        "flag_fraudulent",
+        "mark_suspicious",
         "revoke_approval",
     ]
 

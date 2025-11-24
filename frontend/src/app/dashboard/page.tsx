@@ -23,33 +23,27 @@ import styles from "./dashboard.module.css";
 const STATUS_LABELS: Record<CompanyStatus, string> = {
   approved: "Approved",
   pending: "Pending",
-  rejected: "Rejected",
+  suspicious: "Suspicious",
   fraudulent: "Fraudulent",
-  revoked: "Revoked",
 };
 
 const STATUS_BADGE_VARIANTS: Record<CompanyStatus, BadgeVariant> = {
   approved: "approved",
   pending: "pending",
-  rejected: "rejected",
+  suspicious: "suspicious",
   fraudulent: "fraudulent",
-  revoked: "revoked",
 };
 
 const ANALYSIS_STATUS_LABELS: Record<AnalysisStatus, string> = {
   pending: "Pending",
   in_progress: "In Progress",
-  completed: "Completed",
-  failed: "Failed",
-  incomplete: "Incomplete",
+  complete: "Complete",
 };
 
 const ANALYSIS_BADGE_VARIANTS: Record<AnalysisStatus, BadgeVariant> = {
   pending: "analysis-pending",
   in_progress: "analysis-in-progress",
-  completed: "analysis-completed",
-  failed: "analysis-failed",
-  incomplete: "analysis-incomplete",
+  complete: "analysis-complete",
 };
 
 const formatDate = (value: string | null) => {
