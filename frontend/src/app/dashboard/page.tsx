@@ -446,6 +446,74 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken, currentPage]);
 
+  // Poll for analysis updates when companies are being analyzed
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const POLLING_INTERVAL_MS = 5000; // 5 seconds, same as detail page
+
+  useEffect(() => {
+    // Don't poll during initial load, if not authenticated, if there's an error, or if companies array is empty
+    if (loading || !isAuthenticated || isLoggingOut || error || companies.length === 0) {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Check if any companies are being analyzed (handle null/undefined gracefully)
+    const hasActiveAnalysis = companies.some(
+      (company) => {
+        const status = company.analysis_status;
+        return status === "pending" || status === "in_progress";
+      }
+    );
+
+    if (hasActiveAnalysis) {
+      // Start polling if not already polling
+      if (!pollingIntervalRef.current) {
+        pollingIntervalRef.current = setInterval(() => {
+          // Check if tab is visible before polling (with fallback for older browsers)
+          if (typeof document !== "undefined" && 
+              typeof document.visibilityState !== "undefined" && 
+              document.visibilityState === "hidden") {
+            return;
+          }
+
+          // Check if we should still be polling
+          if (!loadCompaniesRef.current || isLoadingRef.current || !isAuthenticated || isLoggingOut || error) {
+            return;
+          }
+
+          // Wrap in try-catch to handle errors in the callback
+          try {
+            void loadCompaniesRef.current();
+          } catch (callbackError) {
+            console.error("Error in polling callback:", callbackError);
+            // Stop polling on callback error
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+          }
+        }, POLLING_INTERVAL_MS);
+      }
+    } else {
+      // Stop polling if no active analysis
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [companies, loading, isAuthenticated, isLoggingOut, error]);
+
   const handleDeleteClick = useCallback(
     (company: Company) => {
       setDeleteModalCompany(company);
