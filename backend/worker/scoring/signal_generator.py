@@ -64,18 +64,18 @@ class SignalGenerator:
             else:
                 signals.append(Signal(
                     field="domain_age",
-                    status=SignalStatus.FAILED,
+                    status=SignalStatus.SUSPICIOUS,
                     value="Unknown",
-                    weight=0,
-                    severity=SignalSeverity.MEDIUM
+                    weight=RULE_WEIGHTS.get("domain_age_lt_1_year", 20),
+                    severity=SignalSeverity.HIGH
                 ))
         else:
             signals.append(Signal(
                 field="domain_age",
-                status=SignalStatus.FAILED,
+                status=SignalStatus.SUSPICIOUS,
                 value="Check failed",
-                weight=0,
-                severity=SignalSeverity.MEDIUM
+                weight=RULE_WEIGHTS.get("domain_age_lt_1_year", 20),
+                severity=SignalSeverity.HIGH
             ))
         
         # WHOIS privacy signal
@@ -118,10 +118,10 @@ class SignalGenerator:
         else:
             signals.append(Signal(
                 field="dns_resolution",
-                status=SignalStatus.FAILED,
+                status=SignalStatus.SUSPICIOUS,
                 value="Check failed",
-                weight=0,
-                severity=SignalSeverity.MEDIUM
+                weight=15,  # Same weight as "domain does not resolve"
+                severity=SignalSeverity.HIGH
             ))
         
         # Website reachability signal
@@ -145,10 +145,10 @@ class SignalGenerator:
         else:
             signals.append(Signal(
                 field="website_lookup",
-                status=SignalStatus.FAILED,
+                status=SignalStatus.SUSPICIOUS,
                 value="Check failed",
-                weight=0,
-                severity=SignalSeverity.MEDIUM
+                weight=RULE_WEIGHTS.get("website_unreachable", 25),
+                severity=SignalSeverity.HIGH
             ))
         
         # Email/MX validation signal
@@ -189,10 +189,10 @@ class SignalGenerator:
                 else:
                     signals.append(Signal(
                         field="email_match",
-                        status=SignalStatus.OK,
+                        status=SignalStatus.SUSPICIOUS,
                         value="Domain matches (MX check failed)",
-                        weight=0,
-                        severity=SignalSeverity.LOW
+                        weight=RULE_WEIGHTS.get("no_mx_records", 15),
+                        severity=SignalSeverity.MEDIUM
                     ))
         elif mx_result and mx_result.status.value == "success":
             # No email submitted, but check MX for domain
@@ -229,10 +229,10 @@ class SignalGenerator:
             else:
                 signals.append(Signal(
                     field="phone_validation",
-                    status=SignalStatus.FAILED,
+                    status=SignalStatus.SUSPICIOUS,
                     value="Check failed",
-                    weight=0,
-                    severity=SignalSeverity.LOW
+                    weight=10,  # Moderate weight since phone is optional
+                    severity=SignalSeverity.MEDIUM
                 ))
         
         return signals
