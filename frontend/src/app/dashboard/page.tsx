@@ -423,6 +423,13 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken]);
 
+  // Load companies when page changes (pagination)
+  useEffect(() => {
+    if (isAuthenticated && !isLoggingOut && !isLoadingRef.current) {
+      void loadCompanies();
+    }
+  }, [currentPage, loadCompanies, isAuthenticated, isLoggingOut]);
+
   const handleDeleteClick = useCallback(
     (company: Company) => {
       setDeleteModalCompany(company);
