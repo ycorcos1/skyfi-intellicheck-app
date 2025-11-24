@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect as sa_inspect
 
 # Basic logging to stderr before structured logging is set up
 print("Starting SkyFi IntelliCheck API...", file=sys.stderr)
@@ -177,6 +178,24 @@ def on_startup() -> None:
         logger.info("Running database migrations...")
         alembic_cfg = Config(str(ALEMBIC_CONFIG_PATH))
         alembic_cfg.set_main_option("sqlalchemy.url", str(db_engine.url))
+
+        # Ensure Alembic version table exists and stamp current schema if needed
+        with db_engine.connect() as connection:
+            inspector = sa_inspect(connection)
+            has_version_table = inspector.has_table("alembic_version")
+            existing_tables = inspector.get_table_names()
+
+        if not has_version_table:
+            if existing_tables:
+                logger.warning(
+                    "Alembic version table missing but tables exist; stamping to 001_initial_schema",
+                    extra={"tables": existing_tables},
+                )
+                command.stamp(alembic_cfg, "001_initial_schema")
+            else:
+                logger.info("Alembic version table missing and no tables found; stamping base")
+                command.stamp(alembic_cfg, "base")
+
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations complete")
     except Exception as e:
