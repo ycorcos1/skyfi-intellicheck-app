@@ -152,15 +152,20 @@ def on_startup() -> None:
         }
     )
     
-    # Create database tables if they don't exist
+    # Run database migrations
     try:
-        from app.core.database import Base, engine
-        logger.info("Creating database tables if they don't exist...")
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables ready")
+        from alembic import command
+        from alembic.config import Config
+        from app.core.database import engine
+        
+        logger.info("Running database migrations...")
+        alembic_cfg = Config("alembic.ini")
+        alembic_cfg.set_main_option("sqlalchemy.url", str(engine.url))
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations complete")
     except Exception as e:
-        logger.error(f"Failed to create database tables: {e}", exc_info=True)
-        # Don't crash the app - allow it to start even if table creation fails
+        logger.error(f"Failed to run database migrations: {e}", exc_info=True)
+        # Don't crash the app - allow it to start even if migrations fail
         # The health check will show database status
 
 
