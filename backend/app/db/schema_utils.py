@@ -34,27 +34,72 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
             for stmt in enum_statements:
                 autocommit_conn.execute(text(stmt))
 
-            # Normalize legacy status values
-            data_updates = [
-                "UPDATE companies SET status = 'suspicious' WHERE status IN ('rejected', 'revoked')",
-                "UPDATE companies SET analysis_status = 'complete' WHERE analysis_status IN ('completed', 'failed', 'incomplete')",
-                "UPDATE companies SET status = 'fraudulent' WHERE risk_score >= 70",
-                (
+            # Capture existing enum labels to avoid referencing removed values
+            company_labels = {
+                row[0]
+                for row in autocommit_conn.execute(
+                    text(
+                        """
+                        SELECT e.enumlabel
+                        FROM pg_type t
+                        JOIN pg_enum e ON t.oid = e.enumtypid
+                        WHERE t.typname = 'companystatus'
+                        """
+                    )
+                )
+            }
+            analysis_labels = {
+                row[0]
+                for row in autocommit_conn.execute(
+                    text(
+                        """
+                        SELECT e.enumlabel
+                        FROM pg_type t
+                        JOIN pg_enum e ON t.oid = e.enumtypid
+                        WHERE t.typname = 'analysisstatus'
+                        """
+                    )
+                )
+            }
+
+            if {"rejected", "revoked"} & company_labels:
+                autocommit_conn.execute(
+                    text(
+                        "UPDATE companies SET status = 'suspicious' "
+                        "WHERE status IN ('rejected', 'revoked')"
+                    )
+                )
+
+            if {"completed", "failed", "incomplete"} & analysis_labels:
+                autocommit_conn.execute(
+                    text(
+                        "UPDATE companies SET analysis_status = 'complete' "
+                        "WHERE analysis_status IN ('completed', 'failed', 'incomplete')"
+                    )
+                )
+
+            # Risk-based normalization always safe
+            autocommit_conn.execute(
+                text("UPDATE companies SET status = 'fraudulent' WHERE risk_score >= 70")
+            )
+            autocommit_conn.execute(
+                text(
                     "UPDATE companies SET status = 'suspicious' "
                     "WHERE status IN ('pending', 'approved') AND risk_score BETWEEN 31 AND 69"
-                ),
-                (
+                )
+            )
+            autocommit_conn.execute(
+                text(
                     "UPDATE companies SET status = 'approved' "
                     "WHERE status IN ('pending', 'approved') AND analysis_status = 'complete' AND risk_score <= 30"
-                ),
-                (
+                )
+            )
+            autocommit_conn.execute(
+                text(
                     "UPDATE companies SET status = 'suspicious' "
                     "WHERE analysis_status <> 'complete' AND status <> 'fraudulent'"
-                ),
-            ]
-
-            for stmt in data_updates:
-                autocommit_conn.execute(text(stmt))
+                )
+            )
 
     except Exception:  # pragma: no cover - defensive; log and continue
         log.exception("Failed to ensure status schema")
