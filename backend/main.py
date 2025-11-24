@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import time
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -44,6 +45,9 @@ except Exception as e:
     traceback.print_exc(file=sys.stderr)
     sys.stderr.flush()
     raise
+
+ALEMBIC_CONFIG_PATH = Path(__file__).resolve().parent / "alembic.ini"
+
 
 app = FastAPI(
     title="SkyFi IntelliCheck API",
@@ -157,16 +161,27 @@ def on_startup() -> None:
         from alembic import command
         from alembic.config import Config
         from app.core.database import engine
+        from sqlalchemy.engine import Engine
+
+        logger.info("Preparing to run database migrations...")
+
+        db_engine: Engine = engine  # Lazy accessor; resolves to actual engine on first use
+        backend_name = db_engine.url.get_backend_name()
+        if backend_name == "sqlite":
+            logger.info("Skipping migrations for SQLite backend")
+            return
+
+        if not ALEMBIC_CONFIG_PATH.exists():
+            raise FileNotFoundError(f"Alembic configuration not found at {ALEMBIC_CONFIG_PATH}")
         
         logger.info("Running database migrations...")
-        alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("sqlalchemy.url", str(engine.url))
+        alembic_cfg = Config(str(ALEMBIC_CONFIG_PATH))
+        alembic_cfg.set_main_option("sqlalchemy.url", str(db_engine.url))
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations complete")
     except Exception as e:
-        logger.error(f"Failed to run database migrations: {e}", exc_info=True)
-        # Don't crash the app - allow it to start even if migrations fail
-        # The health check will show database status
+        logger.error("Failed to run database migrations", exc_info=True)
+        raise
 
 
 @app.get("/", include_in_schema=False)
