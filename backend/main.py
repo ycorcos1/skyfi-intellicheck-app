@@ -203,7 +203,7 @@ def on_startup() -> None:
                     logger.info(f"Current alembic revision: {current_rev}")
 
         # Known valid revisions - head is the latest
-        HEAD_REVISION = "003_add_status_enum_values"
+        HEAD_REVISION = "004_lowercase_status_enum_values"
         valid_revisions = {
             "001_initial_schema",
             "002_update_status_enums",
