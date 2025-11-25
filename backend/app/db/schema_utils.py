@@ -5,6 +5,37 @@ from sqlalchemy.engine import Engine
 _STATUS_SCHEMA_SYNCED = False
 
 
+def _enum_labels(connection, enum_name: str) -> list[str]:
+    try:
+        result = connection.execute(
+            text(
+                """
+                SELECT e.enumlabel
+                FROM pg_type t
+                JOIN pg_enum e ON t.oid = e.enumtypid
+                WHERE t.typname = :enum_name
+                """
+            ),
+            {"enum_name": enum_name},
+        )
+        return [row[0] for row in result]
+    except Exception:
+        return []
+
+
+def _rename_enum_value(connection, enum_name: str, old: str, new: str, log: logging.Logger) -> None:
+    if old == new:
+        return
+    current_labels = _enum_labels(connection, enum_name)
+    if old not in current_labels or new in current_labels:
+        return
+    try:
+        connection.execute(text(f"ALTER TYPE {enum_name} RENAME VALUE :old TO :new"), {"old": old, "new": new})
+        log.info("Renamed enum value", extra={"enum": enum_name, "old": old, "new": new})
+    except Exception:
+        log.warning("Failed to rename enum value %s -> %s for %s", old, new, enum_name, exc_info=True)
+
+
 def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -> None:
     """
     Make sure the companystatus and analysisstatus enums contain the expected values and
@@ -19,6 +50,16 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
     try:
         with engine.connect() as connection:
             autocommit_conn = connection.execution_options(isolation_level="AUTOCOMMIT")
+
+            # Rename legacy uppercase enum labels to lowercase (idempotent)
+            _rename_enum_value(autocommit_conn, "companystatus", "PENDING", "pending", log)
+            _rename_enum_value(autocommit_conn, "companystatus", "APPROVED", "approved", log)
+            _rename_enum_value(autocommit_conn, "companystatus", "SUSPICIOUS", "suspicious", log)
+            _rename_enum_value(autocommit_conn, "companystatus", "FRAUDULENT", "fraudulent", log)
+
+            _rename_enum_value(autocommit_conn, "analysisstatus", "PENDING", "pending", log)
+            _rename_enum_value(autocommit_conn, "analysisstatus", "IN_PROGRESS", "in_progress", log)
+            _rename_enum_value(autocommit_conn, "analysisstatus", "COMPLETE", "complete", log)
 
             # Ensure enum values exist (PostgreSQL 9.6+ supports IF NOT EXISTS)
             # Attempt to add enum values, but swallow errors if the enum is missing (older schema).
@@ -40,39 +81,8 @@ def ensure_status_schema(engine: Engine, logger: logging.Logger | None = None) -
                     log.debug("Enum alteration failed (ignored): %s", stmt, exc_info=True)
 
             # Determine current enum labels, ignoring errors
-            try:
-                company_labels = [
-                    row[0]
-                    for row in autocommit_conn.execute(
-                        text(
-                            """
-                            SELECT e.enumlabel
-                            FROM pg_type t
-                            JOIN pg_enum e ON t.oid = e.enumtypid
-                            WHERE t.typname = 'companystatus'
-                            """
-                        )
-                    )
-                ]
-            except Exception:
-                company_labels = []
-
-            try:
-                analysis_labels = [
-                    row[0]
-                    for row in autocommit_conn.execute(
-                        text(
-                            """
-                            SELECT e.enumlabel
-                            FROM pg_type t
-                            JOIN pg_enum e ON t.oid = e.enumtypid
-                            WHERE t.typname = 'analysisstatus'
-                            """
-                        )
-                    )
-                ]
-            except Exception:
-                analysis_labels = []
+            company_labels = _enum_labels(autocommit_conn, "companystatus")
+            analysis_labels = _enum_labels(autocommit_conn, "analysisstatus")
 
             has_company_pending = "pending" in company_labels
             if has_company_pending and any(label in ("rejected", "revoked") for label in company_labels):
