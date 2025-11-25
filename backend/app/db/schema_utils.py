@@ -30,7 +30,7 @@ def _rename_enum_value(connection, enum_name: str, old: str, new: str, log: logg
     if old not in current_labels or new in current_labels:
         return
     try:
-        connection.execute(text(f"ALTER TYPE {enum_name} RENAME VALUE :old TO :new"), {"old": old, "new": new})
+        connection.execute(text(f"ALTER TYPE {enum_name} RENAME VALUE '{old}' TO '{new}'"))
         log.info("Renamed enum value", extra={"enum": enum_name, "old": old, "new": new})
     except Exception:
         log.warning("Failed to rename enum value %s -> %s for %s", old, new, enum_name, exc_info=True)
